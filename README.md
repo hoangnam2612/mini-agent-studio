@@ -1,5 +1,24 @@
 # AI20K Agent Template
 
+> **Dự án đang xây trên template này: VIN-15 — Hệ thống hỗ trợ thực tập bằng AI.**
+> PRD (trạng thái từng yêu cầu theo code): [`PRD.md`](PRD.md) · Spec Kiro: [`.kiro/specs/internship-ai-assistant/`](.kiro/specs/internship-ai-assistant/)
+>
+> ```bash
+> docker compose up --build        # Postgres + API + Caddy HTTPS → https://localhost
+> ```
+>
+> `https://localhost` dùng chứng chỉ CA nội bộ của Caddy, nên trình duyệt sẽ cảnh báo cho tới khi tin CA đó.
+> API cũng mở trực tiếp ở `http://127.0.0.1:8000` cho debug và `/docs` (chỉ máy local).
+> Cho máy khác trong LAN: `SITE_ADDRESS="localhost, <IP-LAN>" DEFAULT_SNI=<IP-LAN> docker compose up -d --force-recreate proxy`, rồi mở `https://<IP-LAN>`.
+>
+> Tài khoản demo (mật khẩu `demo123`): sinh viên `sv01` (chưa có hồ sơ), `sv03`, `sv04`, `sv05`, `sv06`;
+> giảng viên `gv01` (điều phối), `gv02`, `gv03`; quản trị viên tùy chọn `admin`.
+> Reset dữ liệu demo: `docker compose down -v && docker compose up -d`.
+> Test: `pytest` (backend, 140 test); `cd tests/ui && npm i && npm run smoke && npm run mobile` (giao diện, cần server đang chạy với DB mới reset).
+>
+> Chạy với LLM thật không cần OpenAI key (Ollama) và SSO thật (Keycloak) — hướng dẫn ở đầu
+> `deploy/docker-compose.llm.yml` và `deploy/docker-compose.sso.yml`; kiểm tra bằng `scripts/llm_e2e.py`, `scripts/sso_e2e.py`.
+
 Template chính thức cho học viên VinUni AI20K Build Phase: cấu trúc dự án, code
 mẫu và hướng dẫn kỹ thuật để xây dựng một AI Agent hoàn chỉnh — từ kiến trúc,
 code, test cho đến deploy và nộp bài Demo Day.

@@ -1,0 +1,33 @@
+# Reverse proxy TLS cho VIN-15 (R15.1).
+# SITE_ADDRESS=localhost (mặc định) → Caddy tự cấp chứng chỉ từ CA nội bộ (trình duyệt sẽ cảnh báo
+# cho tới khi tin CA của Caddy). Đặt SITE_ADDRESS=ten-mien.edu.vn → Caddy xin chứng chỉ Let's Encrypt.
+# HTTP (cổng 80) được Caddy tự chuyển hướng sang HTTPS.
+# Truy cập bằng IP LAN (máy khác trong mạng): SITE_ADDRESS="localhost, 192.168.x.y" và DEFAULT_SNI=192.168.x.y
+# — trình duyệt không gửi SNI khi URL là địa chỉ IP, thiếu default_sni thì bắt tay TLS thất bại.
+{
+	default_sni {$DEFAULT_SNI:localhost}
+}
+
+{$SITE_ADDRESS:localhost} {
+	# Chỉ thị tls tạo connection policy để default_sni có hiệu lực (thiếu nó Caddy bỏ qua default_sni);
+	# không chỉ định issuer → tên miền thật vẫn lấy chứng chỉ Let's Encrypt.
+	tls {
+		protocols tls1.2 tls1.3
+	}
+	encode gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		# Giao diện chỉ tải script/style của chính nó; style inline dùng trong HTML động của app.js
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
+
+	# SSE (trợ lý streaming) — không gom buffer
+	reverse_proxy backend:8000 {
+		flush_interval -1
+	}
+}

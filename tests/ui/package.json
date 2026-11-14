@@ -1,0 +1,11 @@
+{
+  "name": "vin15-ui-checks",
+  "private": true,
+  "type": "module",
+  "description": "Kiểm tra giao diện với server đang chạy (DB seed mới): smoke bằng jsdom, mobile 390px bằng Chrome/Edge headless.",
+  "scripts": {
+    "smoke": "node ui-smoke.mjs",
+    "mobile": "node mobile-check.mjs"
+  },
+  "devDependencies": { "jsdom": "24.1.3", "puppeteer-core": "22.15.0" }
+}

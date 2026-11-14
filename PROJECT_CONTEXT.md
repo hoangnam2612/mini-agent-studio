@@ -5,17 +5,19 @@
 
 ## 0. Quick Rehydrate (≤ 60s)
 
-- **Project**: [TÊN PRODUCT CỦA TEAM] — [1 câu mô tả].
-- **Stack**: Python 3.11 / FastAPI / LangGraph / LangChain / [frontend?].
-- **Dev**: `uvicorn src.main:app --reload` (backend), `[lệnh frontend]`.
-- **Test**: `make test`. **Eval**: `python eval/run_eval.py`.
-- **Env**: copy `.env.example` → `.env`, thêm `OPENAI_API_KEY` (optional — mock-first).
+- **Project**: VIN-15 — Hệ thống hỗ trợ thực tập bằng AI: cổng Sinh viên – Giảng viên (+ Quản trị viên tùy chọn), trợ lý chính sách có trích dẫn, giám sát mốc theo luật, phê duyệt HITL.
+- **Spec / PRD**: `.kiro/specs/internship-ai-assistant/` (requirements, design, tasks, use-cases) · `PRD.md` (trạng thái từng yêu cầu theo code).
+- **Stack**: Python 3.12 / FastAPI / LangGraph / SQLAlchemy (SQLite dev-test, Postgres compose) / SPA JS thuần trong `web/`.
+- **Dev**: `docker compose up --build` → https://localhost (Caddy TLS) · API trực tiếp http://127.0.0.1:8000/docs. Không Docker: `uvicorn src.main:app --reload`.
+- **Test**: `pytest` (124 test) · UI: `cd tests/ui && npm i && npm run smoke && npm run mobile` (cần server đang chạy, DB seed mới).
+- **Env**: copy `.env.example` → `.env`. Không có `OPENAI_API_KEY` thì mọi tính năng AI chạy chế độ xác định (trích đoạn quy định, regex).
 
 ## 0.1 Current Invariants (để không drift)
 
 - **Source of truth kỹ thuật**: code trong `src/`. File `.md` chỉ tóm tắt — khi mâu thuẫn,
   **CODE WINS**. Inspire team 011 source-of-truth rule.
-- **Agent flow**: `src/agents/graph.py` (safety → retrieve → synthesize → validate).
+- **Agent flow**: `src/agents/graph.py` (ReAct template, endpoint `/api/v1/chat` cũ) và `src/agents/policy_graph.py` (VIN-15: guard → retrieve → synthesize → verify → finalize).
+- **HITL**: mọi đổi trạng thái đi qua `src/workflow/state_machine.py::transition()`; cạnh quyết định chỉ cho GV phụ trách là người thật.
 - **Prompts**: `prompts/*.md` (external, `{{placeholder}}`).
 - **Safety**: DANGER_KEYWORDS ở `nodes/safety_node.py` (cập nhật theo domain app).
 

@@ -28,6 +28,21 @@ _TASK_TO_SETTING = {
 }
 
 
+OPENAI_DEFAULT_BASE_URL = "https://api.openai.com/v1"
+
+
+def openai_base_url() -> str:
+    """URL luôn tường minh. Để None thì SDK OpenAI tự đọc biến môi trường OPENAI_BASE_URL — docker
+    env_file đưa vào chuỗi RỖNG từ `.env` → embedding lỗi "Request URL is missing a protocol"."""
+    return get_settings().openai_base_url.strip() or OPENAI_DEFAULT_BASE_URL
+
+
+def llm_available() -> bool:
+    """Có API key thật hay không — False thì các tính năng AI của VIN-15 chạy mock xác định."""
+    key = get_settings().openai_api_key.strip()
+    return bool(key) and not key.startswith("sk-your")
+
+
 def get_llm(task_type: TaskType = "generate") -> ChatOpenAI:
     """Trả về LLM phù hợp với loại task (cascade router).
 
@@ -55,4 +70,6 @@ def get_llm(task_type: TaskType = "generate") -> ChatOpenAI:
         model=model_name,
         api_key=settings.openai_api_key,
         temperature=temperature,
+        base_url=openai_base_url(),  # OpenAI hoặc endpoint tương thích (vd Ollama)
+        max_tokens=settings.llm_max_tokens,  # câu trả lời ngắn → độ trễ và chi phí có giới hạn
     )

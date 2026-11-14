@@ -1,0 +1,29 @@
+# Chạy đường LLM thật mà không cần OpenAI key: Ollama phục vụ API tương thích OpenAI.
+#   docker compose -f docker-compose.yml -f deploy/docker-compose.llm.yml up -d
+#   docker compose -f docker-compose.yml -f deploy/docker-compose.llm.yml exec ollama ollama pull qwen2.5:1.5b
+#   docker compose -f docker-compose.yml -f deploy/docker-compose.llm.yml exec ollama ollama pull bge-m3
+#   docker compose -f docker-compose.yml -f deploy/docker-compose.llm.yml exec ollama ollama pull qwen2.5:0.5b
+# Sau đó: POST /api/v1/policies/reindex (admin) để tạo vector, rồi `python scripts/llm_e2e.py`.
+services:
+  ollama:
+    image: ollama/ollama:0.5.7
+    volumes:
+      - ollama_models:/root/.ollama
+    restart: unless-stopped
+
+  backend:
+    environment:
+      OPENAI_API_KEY: ollama            # Ollama không kiểm key; khác "sk-your…" để bật đường LLM
+      OPENAI_BASE_URL: http://ollama:11434/v1
+      MODEL_CLASSIFY: ${OLLAMA_MODEL:-qwen2.5:1.5b}
+      MODEL_GENERATE: ${OLLAMA_MODEL:-qwen2.5:1.5b}
+      MODEL_JUDGE: qwen2.5:0.5b-judge-unused
+      # bge-m3 (đa ngôn ngữ). Đo trên kho mẫu: câu đúng chủ đề cosine 0.61–0.67, lạc đề 0.22–0.32.
+      # nomic-embed-text KHÔNG dùng được cho tiếng Việt (lạc đề 0.76 > đúng chủ đề 0.65).
+      EMBEDDING_MODEL: bge-m3
+      LLM_ANSWER_BUDGET_SECONDS: ${LLM_ANSWER_BUDGET_SECONDS:-8}
+    depends_on:
+      - ollama
+
+volumes:
+  ollama_models:

@@ -6,11 +6,17 @@ __pycache__
 *.pyc
 .pytest_cache
 .ruff_cache
+.ai-log
+.kiro
+data/
 docs/
 presentation/
 eval/
 *.md
 !requirements.txt
+# Prompt và văn bản quy định mẫu là dữ liệu runtime — phải có trong image
+!prompts/*.md
+!seed/policies/*.md
 .dockerignore
 Dockerfile
 docker-compose.yml

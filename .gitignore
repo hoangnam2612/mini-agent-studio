@@ -58,3 +58,6 @@ out/
 # AI logs — tracked structure, ignored content
 .ai-log/*.jsonl
 .ai-log/archive/
+
+# Ảnh chụp của tests/ui/mobile-check.mjs
+tests/ui/screens/

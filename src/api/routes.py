@@ -7,11 +7,13 @@ gửi lại kèm Command(resume=...) khi user duyệt/từ chối hành động 
 
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from langgraph.types import Command
 from pydantic import BaseModel
 
 from src.agents.graph import agent
+from src.core.auth import current_user
+from src.models.orm import User
 from src.models.schemas import ChatRequest, ChatResponse
 
 logger = logging.getLogger("ai20k.api")
@@ -19,8 +21,9 @@ logger = logging.getLogger("ai20k.api")
 router = APIRouter()
 
 
-def _config(session_id: str) -> dict:
-    return {"configurable": {"thread_id": session_id}}
+def _config(session_id: str, user: User) -> dict:
+    # Thread gắn với người dùng: người khác biết session_id cũng không resume được phiên này
+    return {"configurable": {"thread_id": f"{user.id}:{session_id}"}}
 
 
 def _to_chat_response(result: dict, session_id: str) -> ChatResponse:
@@ -39,10 +42,10 @@ def _to_chat_response(result: dict, session_id: str) -> ChatResponse:
 
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest) -> ChatResponse:
-    """Chat với AI agent. Nếu agent đang chờ human review, response chứa hướng dẫn resume."""
+async def chat(request: ChatRequest, user: User = Depends(current_user)) -> ChatResponse:
+    """Agent demo của template — bắt buộc đăng nhập (agent có tool rủi ro send_email qua HITL)."""
     try:
-        result = await agent.ainvoke({"query": request.message}, config=_config(request.session_id))
+        result = await agent.ainvoke({"query": request.message}, config=_config(request.session_id, user))
         return _to_chat_response(result, request.session_id)
     except Exception as exc:
         logger.error("FAILED /chat — %s", exc)
@@ -55,10 +58,10 @@ class ResumeRequest(BaseModel):
 
 
 @router.post("/chat/resume", response_model=ChatResponse)
-async def chat_resume(request: ResumeRequest) -> ChatResponse:
+async def chat_resume(request: ResumeRequest, user: User = Depends(current_user)) -> ChatResponse:
     """Resume sau HITL interrupt — phê duyệt hoặc từ chối hành động rủi ro."""
     try:
-        result = await agent.ainvoke(Command(resume=request.resume), config=_config(request.session_id))
+        result = await agent.ainvoke(Command(resume=request.resume), config=_config(request.session_id, user))
         return _to_chat_response(result, request.session_id)
     except Exception as exc:
         logger.error("FAILED /chat/resume — %s", exc)

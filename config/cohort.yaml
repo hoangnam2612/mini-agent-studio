@@ -1,0 +1,100 @@
+# Cấu hình đợt thực tập — nguồn dữ liệu khi KHÔNG bật vai trò Quản trị viên (R4.1).
+# Ngày dạng tương đối (+/- số ngày so với ngày seed) để dữ liệu demo luôn "đang diễn ra".
+cohort:
+  code: TT-2026-HK1
+  name: Thực tập doanh nghiệp HK1 2026–2027
+  start_window_offset_days: -60
+  end_window_offset_days: 150
+  min_weeks: 8
+  hours_per_week: 32
+
+# Chuẩn đầu ra học phần thực tập — dùng cho gợi ý "CĐR chưa nhắc tới" (R3.2)
+outcomes:
+  - code: CLO1
+    text: Vận dụng kiến thức chuyên ngành để giải quyết vấn đề thực tế tại doanh nghiệp
+    keywords: [vận dụng, giải quyết, phân tích, thiết kế, xây dựng, phát triển]
+  - code: CLO2
+    text: Làm việc nhóm và giao tiếp chuyên nghiệp trong môi trường doanh nghiệp
+    keywords: [nhóm, giao tiếp, họp, trình bày, phối hợp]
+  - code: CLO3
+    text: Tuân thủ quy trình, quy định và đạo đức nghề nghiệp
+    keywords: [quy trình, quy định, đạo đức, bảo mật, tuân thủ]
+  - code: CLO4
+    text: Viết báo cáo kỹ thuật và tự đánh giá quá trình học tập
+    keywords: [báo cáo, tài liệu, tự đánh giá, nhật ký]
+
+# Mẫu mốc — anchor: start | mid | end, offset_days so với anchor
+milestones:
+  - code: tiep_nhan
+    name: Nộp giấy xác nhận tiếp nhận của doanh nghiệp
+    anchor: start
+    offset_days: 7
+    required_evidence: [acceptance_letter]
+    citation: {doc: QĐ-TT/2026, path: Điều 7 / Khoản 1}
+  - code: de_cuong
+    name: Đề cương thực tập được duyệt
+    anchor: start
+    offset_days: 14
+    required_evidence: []
+    linked_to: outline
+    citation: {doc: QĐ-TT/2026, path: Điều 6 / Khoản 2}
+  - code: giua_ky
+    name: Nộp báo cáo giữa kỳ
+    anchor: mid
+    offset_days: 0
+    required_evidence: [midterm_report]
+    citation: {doc: QĐ-TT/2026, path: Điều 7 / Khoản 2}
+  - code: danh_gia_dn
+    name: Nộp phiếu đánh giá của doanh nghiệp (bản ký)
+    anchor: end
+    offset_days: 0
+    required_evidence: [company_evaluation]
+    citation: {doc: QĐ-TT/2026, path: Điều 9 / Khoản 1}
+  - code: cuoi_ky
+    name: Nộp báo cáo cuối kỳ
+    anchor: end
+    offset_days: 7
+    required_evidence: [final_report]
+    citation: {doc: QĐ-TT/2026, path: Điều 7 / Khoản 3}
+
+rules:
+  extension:
+    max_days: 14
+    citation: {doc: QĐ-TT/2026, path: Điều 10 / Khoản 2}
+  validation:
+    - id: required_fields
+      check: required_fields
+      params:
+        fields: [company_name, company_tax_code, position, job_description, start_date, end_date, mentor_name, mentor_email]
+      citation: {doc: QĐ-TT/2026, path: Điều 5 / Khoản 1}
+    - id: end_after_start
+      check: end_after_start
+      citation: {doc: QĐ-TT/2026, path: Điều 5 / Khoản 2}
+    - id: min_weeks
+      check: duration_weeks_gte
+      citation: {doc: QĐ-TT/2026, path: Điều 5 / Khoản 2}
+    - id: within_window
+      check: within_window
+      citation: {doc: QĐ-TT/2026, path: Điều 5 / Khoản 3}
+  monitor:
+    - id: due_soon
+      check: milestone_due_within
+      params: {days: 3}
+      severity: info
+    - id: overdue
+      check: milestone_overdue
+      severity: warning
+    - id: missing_evidence
+      check: evidence_types_missing
+      severity: warning
+    - id: low_hours
+      check: cumulative_hours_below_expected
+      params: {tolerance: 0.8, min_weeks_elapsed: 2}
+      severity: warning
+
+evidence_types:
+  acceptance_letter: Giấy xác nhận tiếp nhận
+  midterm_report: Báo cáo giữa kỳ
+  company_evaluation: Phiếu đánh giá của doanh nghiệp
+  final_report: Báo cáo cuối kỳ
+  other: Tài liệu khác
