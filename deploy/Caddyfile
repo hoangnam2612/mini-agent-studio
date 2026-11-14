@@ -18,8 +18,8 @@
 
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
-		# Giao diện chỉ tải script/style của chính nó; style inline dùng trong HTML động của app.js
-		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+		# Script chỉ từ chính trang (không inline); style của trang + font Lexend từ Google Fonts (FE React)
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
 		Referrer-Policy "no-referrer"
