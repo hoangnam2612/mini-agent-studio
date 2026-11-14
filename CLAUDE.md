@@ -29,10 +29,10 @@
 
 ## Quy tắc viết tài liệu (docs)
 
-- **Làm xong một chức năng/refactor thì viết tài liệu** vào `docs/`, một file `.md`. Có thể viết
+- **Làm xong một chức năng/refactor thì viết tài liệu** vào `docs/changes/`, một file `.md`. Có thể viết
   ngay khi vừa xong hoặc ngay trước khi commit — miễn là có trước khi kết thúc công việc.
 - **Tên file**: `YYYYMMDD-<làm-cái-gì>.md` (kebab-case, ngày là ngày làm), ví dụ
-  `docs/20261114-refactor-fe.md`.
+  `docs/changes/20261114-refactor-fe.md`.
 - **Nội dung**: vấn đề/mục tiêu, đã làm gì (cấu trúc, file chính), cách kiểm tra, và những gì
   chưa kiểm tra hoặc còn lưu ý.
 - **Người dùng yêu cầu chỉnh sửa lại tính năng đã có tài liệu → SỬA file docs đó**, không tạo file
