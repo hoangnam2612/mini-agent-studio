@@ -1,7 +1,7 @@
 # VIN-15 AI Internship Support System — Product Requirements Document (PRD)
 
 > **Status:** Draft for review
-> **Version:** 0.3
+> **Version:** 0.5
 > **Date:** 2026-11-14
 > **Scope:** the internship portal served at `/` (`web/`) and the REST API at `/api/v1`, for two main roles (Student, Lecturer) and one optional role (Administrator)
 > **Basis:** read from the code in `mini-agent-studio` (working tree, not yet committed; git holds only the template's `Initial commit`) and from the Kiro spec in `.kiro/specs/internship-ai-assistant/` (version 2, reduced scope, with R7 brought back)
@@ -23,7 +23,10 @@ such as `(R3.5)`, points to the requirement in the Kiro `requirements.md`.
 - **Status:** **Built** (matches the criterion), **Partial** (works, narrower than the criterion), **Not built**.
 - Names in `code font` are real routes, classes or files. Vietnamese UI labels are given in **bold**.
 - **No-LLM mode** means no `OPENAI_API_KEY` is set; every AI feature then runs on deterministic rules. The pytest suite runs in this mode, with models, embedders and the IdP replaced by scripted functions at the same seams.
-- **Live model** means the real `ChatOpenAI` / `OpenAIEmbeddings` code path pointed at an OpenAI-compatible endpoint. It was run on 2026-11-14 against Ollama 0.5.7 serving Qwen2.5 1.5B and 0.5B (chat) and bge-m3 (embeddings) on the development laptop's CPU (`scripts/llm_e2e.py`). It was **not** run against api.openai.com, because no OpenAI key was available.
+- **Live model** means the real `ChatOpenAI` / `OpenAIEmbeddings` code path pointed at an OpenAI-compatible endpoint. It was run on 2026-11-14 against Ollama 0.5.7 serving Qwen2.5 1.5B and 0.5B (chat) and bge-m3 (embeddings) on the development laptop's CPU (`scripts/llm_e2e.py`).
+- **api.openai.com** was called on 2026-11-14 in two runs.
+  - **First run:** the key in `.env` had expired, so every endpoint answered `401`. That run found two bugs and one privacy gap, all fixed (§13). It also confirmed the degraded path: with the provider failing, the assistant answers from verified quotes (`mode=extractive_error`).
+  - **Second run:** with a new key (gpt-4o for answers, gpt-4o-mini for extraction and summaries, text-embedding-3-small), `scripts/llm_e2e.py` passed every check (§11.1).
 
 ### 1.3 Out of scope for this document
 
@@ -196,18 +199,20 @@ LangGraph pipeline: `guard → retrieve → synthesize → verify → finalize`.
 | FR-5.7 | Refuse and log questions about other students and prompt injection (R8.7). | P0 | A student code other than the asker's, phrases such as "hồ sơ của sinh viên khác", and Vietnamese or English injection are refused with a `violation_type` and audited as `refused`. | Built (pattern-based; see §12.2) |
 | FR-5.8 | Store the conversation with its citations and answer mode (R8.8). | P1 | Another user reading the conversation gets 404. | Built |
 | FR-5.9 | Stream the answer (NFR-1). | P1 | SSE events: `stage` after each pipeline node, then `delta` chunks of the **verified** answer, then `done` with citations and `mode`. The first event arrives before the model is called; the deltas joined equal the stored answer. | Built (works through Caddy with `flush_interval -1`) |
-| FR-5.10 | With a model configured, the model writes the answer from `prompts/policy_assistant.md` (instructions and clauses in the system message, the question in the user message). | P1 | Answers state the right figure and cite the right article. | Built. Live run with Qwen2.5 1.5B, no time budget: 7/7 questions answered by the model (`mode=generated`), each with the expected figure (8 weeks, 14 days, 32 hours, 7 days) and article, including paraphrased questions ("deadline của report cuối kỳ", "mấy tiếng"). Qwen2.5 0.5B was faster but answered two questions with the wrong clause, so it is not recommended. |
+| FR-5.10 | With a model configured, the model writes the answer from `prompts/policy_assistant.md` (instructions and clauses in the system message, the question in the user message). | P1 | Answers state the right figure and cite the right article. | Built. **OpenAI gpt-4o:** 7/7 answerable questions written by the model (`mode=generated`) with the right figure and article, including paraphrases, p95 2.0 s. Ollama, Qwen2.5 1.5B, no time budget: 7/7 questions answered by the model (`mode=generated`), each with the expected figure (8 weeks, 14 days, 32 hours, 7 days) and article, including paraphrased questions ("deadline của report cuối kỳ", "mấy tiếng"). Qwen2.5 0.5B was faster but answered two questions with the wrong clause, so it is not recommended. |
 | FR-5.11 | Cap the time spent on the model per question. | P0 | `LLM_ANSWER_BUDGET_SECONDS` (default 8) covers all generation attempts. When it runs out, the verified verbatim quote is returned (`mode=extractive_timeout`). | Built (test with a model that sleeps 5 s under a 0.3 s budget; live run below in NFR-1) |
 | FR-5.12 | Limit assistant use per user. | P1 | More than 20 questions per user per minute return 429 (both endpoints). | Built (in-memory, per process) |
+| FR-5.13 | Survive a provider failure (expired key, outage, quota). | P0 | When the model call raises, retrieved clauses are returned as a verified quote (`mode=extractive_error`) instead of "the assistant cannot answer". | Built. Against api.openai.com with an expired key: 6/6 answerable questions were answered correctly from quotes, p95 0.4 s. |
 
 ### 5.6 Regulation store — `GET/POST /policies`, `POST /policies/reindex`, `src/services/policy_index.py`
 
 | ID | Requirement | Priority | Acceptance criterion | Status |
 |---|---|---|---|---|
 | FR-6.1 | Upload a PDF/DOCX/MD/TXT document with its code, title, effective from/to dates and the code it replaces (R9.1). | P0 | Only the Administrator can upload; with that role off, the coordinator lecturer can. Others get 403. | Built |
-| FR-6.2 | Split by Chapter/Article/Clause, create embeddings and index (R9.2). | P0 | <ul><li>A document without "Điều N." lines is rejected (422).</li><li>With an embedder, every new chunk gets a vector; `POST /policies/reindex` fills vectors for chunks stored before a model was configured.</li><li>Paraphrased questions are found through embeddings.</li></ul> | Built. Live run with bge-m3: 33 chunks embedded. On-topic paraphrases scored cosine 0.61–0.67 and ranked the right clause first or second; off-topic questions scored 0.22–0.32, so the threshold is 0.5. nomic-embed-text was measured and rejected: an off-topic question scored 0.76, above the on-topic 0.65. Vectors are stored as JSON and compared in memory, not in pgvector. |
+| FR-6.2 | Split by Chapter/Article/Clause, create embeddings and index (R9.2). | P0 | <ul><li>A document without "Điều N." lines is rejected (422).</li><li>With an embedder, every new chunk gets a vector; `POST /policies/reindex` fills vectors for chunks stored before a model was configured.</li><li>Paraphrased questions are found through embeddings.</li></ul> | Built. Thresholds are calibrated per model in `CALIBRATED_SIMILARITY`; `EMBEDDING_MIN_SIMILARITY` only overrides them. **text-embedding-3-small:** on-topic paraphrases scored 0.456–0.60, off-topic ≤ 0.257, so the threshold is 0.38. **bge-m3:** 33 chunks embedded. On-topic paraphrases scored cosine 0.61–0.67 and ranked the right clause first or second; off-topic questions scored 0.22–0.32, so the threshold is 0.5. nomic-embed-text was measured and rejected: an off-topic question scored 0.76, above the on-topic 0.65. Vectors are stored as JSON and compared in memory, not in pgvector. |
 | FR-6.3 | A new document that replaces an old one marks the old one `superseded`; it is kept for reference and no longer retrieved (R9.3). | P0 | Seed: QĐ-TT/2025 (6 weeks) is replaced by QĐ-TT/2026 (8 weeks); a question on duration cites only 2026. | Built |
 | FR-6.4 | Every user can list documents and read their chunks. | P2 | | Built |
+| FR-6.5 | `POST /policies/reindex` reports a provider error. | P1 | An embedder failure returns 502 with the provider's message; it is no longer reported as success with 0 vectors. | Built |
 
 ### 5.7 Rule-based monitor — `src/services/monitor.py`, `/risk-flags`, `POST /monitor/run`
 
@@ -285,7 +290,7 @@ Storage: 18 tables created by `Base.metadata.create_all` at startup. There are n
 
 | ID | Category | Requirement | Status |
 |---|---|---|---|
-| NFR-1 | Latency | Assistant p95 ≤ 10 s, with streaming (spec NFR-1). | Built. <ul><li>**No-LLM mode:** p95 20 ms, first event ≤ 106 ms (`test_nfr1_latency_no_llm_mode`).</li><li>**Live, Qwen2.5 1.5B on the laptop CPU, default 8 s budget:** p95 8.4 s over 10 questions, first event ≤ 40 ms. The model never finished within budget on this CPU, so every answered question was a verified verbatim quote (`extractive_timeout`).</li><li>**Same model, budget off:** every answer was model-written and correct, but p95 was 16.1 s.</li></ul>Model-written answers within 10 s need faster hardware or a hosted API; that was not measured. |
+| NFR-1 | Latency | Assistant p95 ≤ 10 s, with streaming (spec NFR-1). | Built. <ul><li>**OpenAI (gpt-4o + text-embedding-3-small):** p95 2.0 s, median 1.2 s over 10 questions, all model-written.</li><li>**No-LLM mode:** p95 20 ms, first event ≤ 106 ms (`test_nfr1_latency_no_llm_mode`).</li><li>**Live, Qwen2.5 1.5B on the laptop CPU, default 8 s budget:** p95 8.4 s over 10 questions, first event ≤ 40 ms. The model never finished within budget on this CPU, so every answered question was a verified verbatim quote (`extractive_timeout`).</li><li>**Same model, budget off:** every answer was model-written and correct, but p95 was 16.1 s.</li></ul>Model-written answers within 10 s need faster hardware or a hosted API; that was not measured. |
 | NFR-2 | Deployment | One `docker compose up`; runs without an API key (spec NFR-2). | Built. The template's original Dockerfile was broken (packages installed to `/root/.local`, unreadable by the non-root user) and has been fixed. |
 | NFR-3 | Language and device | Vietnamese interface, usable on a phone (spec NFR-3). | Built: 11 screens rendered in headless Chrome at 390 × 844 have no horizontal overflow and no console errors (`tests/ui/mobile-check.mjs`). Not tried on a physical device. |
 | NFR-4 | Prompts | Prompts live in `prompts/*.md` (spec NFR-4). | Built (`policy_assistant.md`, `intake_extract.md`, `reviewer_summary.md`). |
@@ -294,6 +299,7 @@ Storage: 18 tables created by `Base.metadata.create_all` at startup. There are n
 | NFR-7 | Security | Mask PII before calling an LLM (R15.2). | Built: known values of the asker, then regex for email, phone, student code, ID and tax numbers (property test P6). |
 | NFR-8 | Security | Audit every state change and every denied access (R15.3). | Built |
 | NFR-9 | Security | No PII in application logs (R15.4). | Built (`test_r15_4_application_logs_contain_no_pii`) |
+| NFR-9a | Security | No data to third parties unless intended (R15.5). | Built. The template's `.env.example` enabled LangSmith tracing with a placeholder key, so the app tried to send traces (prompts with masked student context) to api.smith.langchain.com. `guard_tracing()` in `src/main.py` now switches tracing off unless a real `LANGCHAIN_API_KEY` is set. Tracing with a real key stays possible because it is a course deliverable. |
 | NFR-10 | Recovery | A restart loses no data. | Built: Postgres volume `pgdata`, files in `./data`, certificates in `caddy_data`. Rate-limit counters are in memory and reset on restart. |
 | NFR-11 | Security | Rate limits and lock-out (FR-1.7, FR-1.8, FR-5.12, FR-2.2). | Built, per process. Revoking a JWT before it expires is not built (beyond spec). |
 | NFR-12 | Scale (beyond spec) | Several workers or instances. | Not built. The monitor loop and the rate-limit counters live in the process. With several workers, the monitor runs twice (flags stay unique through `open_key`, notifications could repeat) and limits apply per worker. |
@@ -345,11 +351,12 @@ Storage: 18 tables created by `Base.metadata.create_all` at startup. There are n
 
 | Layer | What it checks | How to run | Status |
 |---|---|---|---|
-| Backend VIN-15 (pytest, 85 tests in `tests/test_vin15/`) | Covers: <ul><li>state machine and decision rights</li><li>data scope</li><li>registration rules</li><li>monitor</li><li>regulation store and embeddings</li><li>assistant (citations, grounding, numbers, fallback, time budget, refusals, PII, streaming, latency)</li><li>SSO (mocked IdP)</li><li>intake and storage</li><li>the full HTTP flow</li><li>extensions</li><li>template editing</li><li>Administrator on/off</li><li>PII in logs</li><li>aggregated list and export</li><li>rate limits and lock-out</li><li>demo endpoints behind sign-in</li></ul>Each test starts from a freshly seeded in-memory SQLite. | `pytest tests/test_vin15` (Docker: `docker build -f Dockerfile.dev -t vin15-dev .` then `docker run --rm -v "$PWD":/app vin15-dev pytest`) | Built |
+| Backend VIN-15 (pytest, 90 tests in `tests/test_vin15/`) | Covers: <ul><li>state machine and decision rights</li><li>data scope</li><li>registration rules</li><li>monitor</li><li>regulation store and embeddings</li><li>assistant (citations, grounding, numbers, fallback, time budget, refusals, PII, streaming, latency)</li><li>SSO (mocked IdP)</li><li>intake and storage</li><li>the full HTTP flow</li><li>extensions</li><li>template editing</li><li>Administrator on/off</li><li>PII in logs</li><li>aggregated list and export</li><li>rate limits and lock-out</li><li>demo endpoints behind sign-in</li></ul>Each test starts from a freshly seeded in-memory SQLite. | `pytest tests/test_vin15` (Docker: `docker build -f Dockerfile.dev -t vin15-dev .` then `docker run --rm -v "$PWD":/app vin15-dev pytest`) | Built |
 | Property-based (Hypothesis, same suite) | P1 (60 examples), P2 (80), P3 (40 random queries), P4 (25). | As above | Built |
-| Template (55 tests) | Demo ReAct agent, guardrails, HITL interrupt, eval scripts. Route tests now sign in through a dependency override. | `pytest` | Built. 140 tests pass in total. |
+| Template (55 tests) | Demo ReAct agent, guardrails, HITL interrupt, eval scripts. Route tests now sign in through a dependency override. | `pytest` | Built. 145 tests pass in total. |
 | Lint | ruff on the project's own code | `ruff check src/ tests/ scripts/seed.py scripts/llm_e2e.py scripts/sso_e2e.py` | Built, clean. The template's logging scripts in `scripts/` have pre-existing ruff findings that were left alone. |
 | Live model E2E (`scripts/llm_e2e.py`) | Covers: <ul><li>embedding reindex</li><li>10 assistant questions over SSE, each checked for outcome, cited article and the expected figure in the answer</li><li>refusal and not-found cases</li><li>intake extraction</li><li>outline summary</li><li>NFR-1 p95</li></ul> | `docker compose -f docker-compose.yml -f deploy/docker-compose.llm.yml up -d`, pull the models, then `docker run --rm --network mini-agent-studio_default -v "$PWD":/app vin15-dev python scripts/llm_e2e.py` | Run 2026-11-14 with Qwen2.5 1.5B + bge-m3: all checks pass with the default 8 s budget. With the budget off, everything passes except NFR-1 (p95 16.1 s). Not in CI. |
+| OpenAI E2E (`scripts/llm_e2e.py`, default stack with `OPENAI_API_KEY` in `.env`) | Same script against api.openai.com (gpt-4o, gpt-4o-mini, text-embedding-3-small). | `docker compose up -d`, then the same `docker run … llm_e2e.py` | Two runs on 2026-11-14: <ul><li>**Expired key:** the degraded-mode checks passed (answers from quotes, p95 0.4 s, refusals, not-found).</li><li>**Valid key:** all checks passed. 7/7 answers were model-written and correct, p95 2.0 s; intake `source=llm`; outline summary; refusals and not-found.</li></ul> |
 | Real SSO E2E (`scripts/sso_e2e.py`) | The full flow through Keycloak's login form, as in §5.1 FR-1.2. | `docker compose -f docker-compose.yml -f deploy/docker-compose.sso.yml up -d`, then `python scripts/sso_e2e.py` in the network | Run 2026-11-14: 8/8. Not in CI. |
 | UI smoke (jsdom, `tests/ui/ui-smoke.mjs`, 28 checks) | Runs the real `web/app.js` against the running server. Covers: <ul><li>login</li><li>student create and rule check</li><li>timeline, log attachments, extension evidence</li><li>assistant over SSE with sources</li><li>regulations</li><li>lecturer queue with AI box, the aggregated list and its risk filter, detail with audit, warnings</li><li>admin screen, template editing, cohort-wide list</li><li>no JavaScript errors</li></ul> | Freshly reset stack, then `cd tests/ui && npm i && npm run smoke` | Built (28/28 on 2026-11-14). Not in CI; it changes the data. |
 | Mobile (headless Chrome, `tests/ui/mobile-check.mjs`) | 11 screens across all roles at 390 × 844 over HTTPS: no horizontal overflow, no console errors, screenshots in `tests/ui/screens/`. | `npm run mobile` (set `BROWSER_PATH` if Chrome is elsewhere; Edge works) | Built (11/11 on 2026-11-14). Not in CI. |
@@ -401,7 +408,7 @@ Prerequisites: `docker compose down -v && docker compose up -d --build`, then op
 
 ### 11.4 Gaps in testing
 
-- api.openai.com has never been called (no key). The OpenAI-compatible path was exercised only with Ollama-hosted open models.
+- OpenAI was measured on 10 questions only, and embedding thresholds on 8 calibration questions; a larger set is R16.
 - The live-model and real-SSO runs are scripts run by hand, not part of CI.
 - The live-model question set has 10 questions; there is no larger answer-quality set (R16 is deferred).
 - pytest runs on SQLite only; Postgres and HTTPS were checked by hand.
@@ -413,7 +420,7 @@ Prerequisites: `docker compose down -v && docker compose up -d --build`, then op
 
 ### 12.1 Time
 
-- **No-LLM mode:** no network call. The 140 pytest tests take about 20 s on Docker Desktop. The assistant's p95 is 20 ms.
+- **No-LLM mode:** no network call. The 145 pytest tests take about 21 s on Docker Desktop. The assistant's p95 is 20 ms.
 - **Live model on the development laptop (CPU only):**
   - Qwen2.5 1.5B needs 10–16 s per answer. With the default 8 s budget, every answered question returns a verbatim quote in about 8.3 s.
   - Qwen2.5 0.5B answers in about 4 s but picked the wrong clause twice in 10 questions.
@@ -458,6 +465,11 @@ Prerequisites: `docker compose down -v && docker compose up -d --build`, then op
 - **Bugs found late:**
   - Replacing milestone templates deleted templates that existing milestones still pointed to. Postgres rejected it; SQLite tests had missed it because foreign keys were off. Fixed, and SQLite now enforces foreign keys.
   - The first live-model run showed the citation check accepting off-topic and wrong-number answers. Fixed with the grounding rules in FR-5.4.
+  - The OpenAI run (2026-11-14) found:
+    - **Embeddings could not reach OpenAI.** `.env` has `OPENAI_BASE_URL=` empty, docker passes the empty string into the container, and the SDK built an empty URL ("missing protocol"). Fixed: `openai_base_url()` always passes an explicit URL. A regression test fails without the fix.
+    - **A provider error made the assistant refuse to answer.** Fixed by FR-5.13.
+    - **Reindex reported success with 0 vectors.** Fixed by FR-6.5.
+    - **LangSmith tracing was on with a placeholder key.** Fixed by NFR-9a.
 - **Deviations from the design**, with reasons in WORKLOG ADR-001 to ADR-011:
   - plain JS instead of Next.js
   - BM25 plus JSON embeddings instead of pgvector
@@ -487,4 +499,6 @@ Prerequisites: `docker compose down -v && docker compose up -d --build`, then op
 |---|---|---|---|
 | 0.1 | 2026-11-13 | Product team (drafted with Claude Code) | First PRD, in Vietnamese, written from the code after the build against spec version 2 (two main roles plus an optional Administrator; R6, R7, R16 deferred). |
 | 0.2 | 2026-11-14 | Product team (drafted with Claude Code) | Rewritten in English to follow the sample format. Added streaming, HTTPS, SSO (mocked IdP), embeddings, log attachments, extension evidence, the template editor, mobile and PII-in-log checks. Recorded the template foreign-key bug. |
+| 0.5 | 2026-11-14 | Product team (drafted with Claude Code) | Ran against OpenAI with a valid key: all live checks pass, p95 2.0 s. Calibrated text-embedding-3-small (threshold 0.38); thresholds are now per model. Added LAN access through Caddy (`DEFAULT_SNI`, needed because browsers send no SNI to an IP address). 145 tests. |
+| 0.4 | 2026-11-14 | Product team (drafted with Claude Code) | Called api.openai.com: the key in `.env` was expired (401). Fixed the empty-`OPENAI_BASE_URL` embedding bug, the hard refusal on provider errors (FR-5.13), silent reindex failures (FR-6.5) and unintended LangSmith tracing (NFR-9a). 144 tests. OpenAI quality and latency are pending a valid key. |
 | 0.3 | 2026-11-14 | Product team (drafted with Claude Code) | Built R7 (aggregated list, filters, export). Put the template's demo endpoints behind sign-in. Added lock-out and rate limits. Ran SSO against Keycloak 25 and the model path against Ollama (Qwen2.5, bge-m3). Added grounding, number checks, `[n]` citations, the verbatim fallback and the 8 s time budget after the live run exposed off-topic and wrong-number answers. Recorded live latency (NFR-1) and the nomic-embed-text finding. |

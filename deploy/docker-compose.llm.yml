@@ -21,7 +21,6 @@ services:
       # bge-m3 (đa ngôn ngữ). Đo trên kho mẫu: câu đúng chủ đề cosine 0.61–0.67, lạc đề 0.22–0.32.
       # nomic-embed-text KHÔNG dùng được cho tiếng Việt (lạc đề 0.76 > đúng chủ đề 0.65).
       EMBEDDING_MODEL: bge-m3
-      EMBEDDING_MIN_SIMILARITY: "0.5"
       LLM_ANSWER_BUDGET_SECONDS: ${LLM_ANSWER_BUDGET_SECONDS:-8}
     depends_on:
       - ollama

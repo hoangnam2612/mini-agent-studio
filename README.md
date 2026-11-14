@@ -9,6 +9,7 @@
 >
 > `https://localhost` dùng chứng chỉ CA nội bộ của Caddy, nên trình duyệt sẽ cảnh báo cho tới khi tin CA đó.
 > API cũng mở trực tiếp ở `http://127.0.0.1:8000` cho debug và `/docs` (chỉ máy local).
+> Cho máy khác trong LAN: `SITE_ADDRESS="localhost, <IP-LAN>" DEFAULT_SNI=<IP-LAN> docker compose up -d --force-recreate proxy`, rồi mở `https://<IP-LAN>`.
 >
 > Tài khoản demo (mật khẩu `demo123`): sinh viên `sv01` (chưa có hồ sơ), `sv03`, `sv04`, `sv05`, `sv06`;
 > giảng viên `gv01` (điều phối), `gv02`, `gv03`; quản trị viên tùy chọn `admin`.

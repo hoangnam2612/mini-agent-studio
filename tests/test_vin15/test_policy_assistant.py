@@ -161,6 +161,28 @@ async def test_slow_model_hits_time_budget_and_falls_back(db, monkeypatch):
     assert result["mode"] == "extractive_timeout" and "8 tuần" in result["answer"] and result["citations"]
 
 
+async def test_provider_error_falls_back_to_verified_quote(db):
+    async def expired_key(state, prompt):
+        raise RuntimeError("Error code: 401 - Your API key has expired")
+
+    result = await _ask(db, "Thời gian thực tập tối thiểu là bao lâu?", synthesize_fn=expired_key)
+    assert result["outcome"] == "answered" and result["mode"] == "extractive_error"
+    assert "8 tuần" in result["answer"] and result["citations"]
+
+
+def test_tracing_disabled_without_real_key(monkeypatch):
+    import os
+
+    from src.main import guard_tracing
+
+    monkeypatch.setenv("LANGCHAIN_TRACING_V2", "true")
+    monkeypatch.setenv("LANGCHAIN_API_KEY", "your-langsmith-key-here")
+    assert guard_tracing() is False and os.environ["LANGCHAIN_TRACING_V2"] == "false"
+    monkeypatch.setenv("LANGCHAIN_TRACING_V2", "true")
+    monkeypatch.setenv("LANGCHAIN_API_KEY", "lsv2_real_looking_key")
+    assert guard_tracing() is True
+
+
 async def test_model_saying_not_found_is_respected(db):
     async def says_no(state, prompt):
         return "KHONG_TIM_THAY"

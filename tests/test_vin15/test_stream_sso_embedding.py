@@ -190,5 +190,43 @@ async def test_reindex_endpoint(api, embedder):
     assert (await api.call("POST", "/policies/reindex", "gv02")).status_code == 403
 
 
+def test_empty_base_url_env_does_not_break_openai_clients(monkeypatch):
+    """Hồi quy: `.env` có `OPENAI_BASE_URL=` rỗng → SDK đọc chuỗi rỗng → 'URL is missing a protocol'."""
+    from src.services.llm import get_llm
+
+    monkeypatch.setenv("OPENAI_BASE_URL", "")
+    monkeypatch.setattr(get_settings(), "openai_api_key", "sk-test-not-real")
+    monkeypatch.setattr(get_settings(), "openai_base_url", "")
+    embedder = policy_index.get_embedder()
+    assert str(embedder.__self__.client._client.base_url).startswith("https://api.openai.com/v1")
+    assert str(get_llm("generate").root_client.base_url).startswith("https://api.openai.com/v1")
+
+
+async def test_reindex_reports_provider_error(api):
+    def broken(texts):
+        raise RuntimeError("Error code: 401 - Your API key has expired")
+
+    policy_index.set_embedder(broken)
+    try:
+        r = await api.call("POST", "/policies/reindex", "admin")
+        assert r.status_code == 502 and "expired" in r.json()["detail"]
+    finally:
+        policy_index.set_embedder(None)
+
+
 async def test_reindex_without_embedder(api):
     assert (await api.call("POST", "/policies/reindex", "admin")).status_code == 409
+
+
+def test_similarity_threshold_is_calibrated_per_model(monkeypatch):
+    s = get_settings()
+    monkeypatch.setattr(s, "embedding_min_similarity", None)
+    monkeypatch.setattr(s, "embedding_model", "text-embedding-3-small")
+    assert policy_index.min_similarity() == 0.38
+    monkeypatch.setattr(s, "embedding_model", "bge-m3")
+    assert policy_index.min_similarity() == 0.50
+    monkeypatch.setattr(s, "embedding_min_similarity", 0.7)  # ghi đè tường minh
+    assert policy_index.min_similarity() == 0.7
+    from src.config import Settings
+
+    assert Settings(embedding_min_similarity="").embedding_min_similarity is None  # dòng .env để trống

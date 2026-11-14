@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from src.config import get_settings
 from src.models.orm import PolicyChunk, PolicyDoc
-from src.services.llm import llm_available
+from src.services.llm import llm_available, openai_base_url
 
 logger = logging.getLogger("vin15.policy_index")
 
@@ -167,14 +167,36 @@ def get_embedder() -> Embedder | None:
     settings = get_settings()
     return OpenAIEmbeddings(
         model=settings.embedding_model, api_key=settings.openai_api_key,
-        base_url=settings.openai_base_url or None,
+        base_url=openai_base_url(),
         # Endpoint không phải OpenAI (Ollama…) không hiểu token id của tiktoken → gửi text thô
         check_embedding_ctx_length=not settings.openai_base_url,
     ).embed_documents
 
 
-def embed_chunks(chunks: list[PolicyChunk]) -> int:
-    """Gắn vector cho chunk. Lỗi embedder → giữ None, truy hồi vẫn chạy bằng BM25."""
+# Ngưỡng cosine đo trên kho quy định mẫu (8 câu đúng chủ đề / lạc đề, 2026-11-14):
+#   text-embedding-3-small: đúng chủ đề 0.456–0.60, lạc đề ≤ 0.257 → 0.38
+#   bge-m3:                 đúng chủ đề 0.61–0.67,  lạc đề ≤ 0.32  → 0.50
+# nomic-embed-text không tách được tiếng Việt (lạc đề 0.76 > đúng chủ đề 0.65) → không có ngưỡng.
+CALIBRATED_SIMILARITY = {"text-embedding-3-small": 0.38, "bge-m3": 0.50}
+DEFAULT_SIMILARITY = 0.5  # model chưa hiệu chỉnh — đo lại trước khi dùng
+
+
+def min_similarity() -> float:
+    settings = get_settings()
+    if settings.embedding_min_similarity is not None:
+        return settings.embedding_min_similarity
+    return CALIBRATED_SIMILARITY.get(settings.embedding_model, DEFAULT_SIMILARITY)
+
+
+class EmbeddingError(Exception):
+    pass
+
+
+def embed_chunks(chunks: list[PolicyChunk], raise_on_error: bool = False) -> int:
+    """Gắn vector cho chunk. Lỗi embedder → giữ None, truy hồi vẫn chạy bằng BM25.
+
+    raise_on_error=True (endpoint reindex): báo lỗi nhà cung cấp cho người gọi thay vì nuốt im lặng.
+    """
     embedder = get_embedder()
     if embedder is None or not chunks:
         return 0
@@ -182,6 +204,8 @@ def embed_chunks(chunks: list[PolicyChunk]) -> int:
         vectors = embedder([c.path + "\n" + c.text for c in chunks])
     except Exception as exc:
         logger.error("FAILED embed_chunks: %s", exc)
+        if raise_on_error:
+            raise EmbeddingError(str(exc)[:300]) from exc
         return 0
     for chunk, vec in zip(chunks, vectors, strict=True):
         chunk.embedding = [float(x) for x in vec]
@@ -256,7 +280,7 @@ def search_policy(db: Session, query: str, today: date, top_k: int | None = None
     for chunk, terms in zip(chunks, docs, strict=True):
         tf = Counter(terms)
         similarity = _cosine(q_vec, chunk.embedding) if q_vec and chunk.embedding else 0.0
-        semantic_ok = similarity >= settings.embedding_min_similarity
+        semantic_ok = similarity >= min_similarity()
         lexical_ok = sum(1 for t in q_terms if t in tf) >= min_matched
         if not (lexical_ok or semantic_ok):
             continue

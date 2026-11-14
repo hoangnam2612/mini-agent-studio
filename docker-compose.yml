@@ -45,6 +45,7 @@ services:
       - "443:443"
     environment:
       SITE_ADDRESS: ${SITE_ADDRESS:-localhost}
+      DEFAULT_SNI: ${DEFAULT_SNI:-localhost}
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data

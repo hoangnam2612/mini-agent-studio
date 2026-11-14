@@ -166,7 +166,10 @@ def reindex_policies(user: User = Depends(current_user), db: Session = Depends(g
     if policy_index.get_embedder() is None:
         raise HTTPException(status_code=409, detail="Chưa cấu hình embedding (cần OPENAI_API_KEY)")
     missing = list(db.scalars(select(PolicyChunk).where(PolicyChunk.embedding.is_(None))).all())
-    done = policy_index.embed_chunks(missing)
+    try:
+        done = policy_index.embed_chunks(missing, raise_on_error=True)
+    except policy_index.EmbeddingError as exc:
+        raise HTTPException(status_code=502, detail=f"Nhà cung cấp embedding lỗi: {exc}") from exc
     audit.record(db, actor_of(user), "policy_doc", None, "reindex_embeddings", after={"chunks": done})
     db.commit()
     return {"embedded": done, "missing_before": len(missing)}

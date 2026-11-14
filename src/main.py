@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 
@@ -16,6 +17,25 @@ from src.workflow.state_machine import TransitionError
 
 logger = logging.getLogger("vin15")
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
+
+
+def guard_tracing() -> bool:
+    """Tắt LangSmith tracing nếu không có key thật (R15.5: không gửi dữ liệu ra bên thứ ba ngoài ý muốn).
+
+    `.env.example` của template từng để LANGCHAIN_TRACING_V2=true kèm key mẫu → app cố gửi trace
+    (chứa prompt + ngữ cảnh sinh viên) tới api.smith.langchain.com. Trả True nếu tracing còn bật.
+    """
+    enabled = any(os.environ.get(k, "").lower() == "true" for k in ("LANGCHAIN_TRACING_V2", "LANGSMITH_TRACING"))
+    key = os.environ.get("LANGCHAIN_API_KEY") or os.environ.get("LANGSMITH_API_KEY") or ""
+    if enabled and (not key.strip() or key.startswith("your-")):
+        for k in ("LANGCHAIN_TRACING_V2", "LANGSMITH_TRACING"):
+            os.environ[k] = "false"
+        logger.warning("LangSmith tracing đã tắt: không có LANGCHAIN_API_KEY thật")
+        return False
+    return enabled
+
+
+guard_tracing()
 
 
 @asynccontextmanager

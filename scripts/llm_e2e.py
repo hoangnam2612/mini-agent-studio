@@ -83,8 +83,14 @@ def main() -> int:
 
     admin = login(c, "admin")
     r = c.post("/api/v1/policies/reindex", headers=admin)
-    check("reindex embeddings via live model", r.status_code == 200, r.text)
+    check("reindex embeddings via live model", r.status_code == 200, r.text[:300])
     print("   ", r.json() if r.status_code == 200 else "")
+    # Mọi đoạn phải có vector (lúc seed hoặc vừa reindex) — 0 vector nghĩa là embedder không chạy
+    policies = c.get("/api/v1/policies", headers=admin).json()
+    chunk_ids = [ch for p in policies if p["status"] == "active"
+                 for ch in c.get(f"/api/v1/policies/{p['id']}", headers=admin).json()["chunks"]]
+    check("all active chunks embedded", bool(chunk_ids) and r.status_code == 200
+          and r.json().get("embedded") == r.json().get("missing_before"), f"{len(chunk_ids)} chunks")
 
     sv = login(c, "sv03")
     totals, modes = [], {}

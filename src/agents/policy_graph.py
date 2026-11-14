@@ -66,9 +66,10 @@ class PolicyState(TypedDict, total=False):
     answer: str
     citations: list[dict]
     outcome: str  # answered | not_found | refused | unavailable
-    mode: str  # generated | extractive | extractive_fallback | extractive_timeout
+    mode: str  # generated | extractive | extractive_fallback | extractive_timeout | extractive_error
     started_at: float
     timed_out: bool
+    llm_error: bool
     stage: str
 
 
@@ -223,8 +224,11 @@ def make_policy_graph(db: Session, synthesize_fn: SynthesizeFn | None = None):
             logger.warning("policy synthesize hết ngân sách %.1fs", budget)
             return {"draft": "", "attempts": MAX_ATTEMPTS, "timed_out": True, "prompts_sent": sent, "stage": "synthesize"}
         except Exception as exc:
-            logger.error("FAILED policy synthesize: %s", exc)
-            return {"outcome": "unavailable", "prompts_sent": sent, "stage": "synthesize"}
+            # Nhà cung cấp lỗi (key hết hạn, mất mạng, quota…): đã có đoạn quy định đủ ngưỡng thì
+            # vẫn trả trích dẫn nguyên văn đã kiểm chứng thay vì "không trả lời được"
+            logger.error("FAILED policy synthesize: %s", type(exc).__name__)
+            return {"draft": "", "attempts": MAX_ATTEMPTS, "llm_error": True, "prompts_sent": sent,
+                    "stage": "synthesize"}
         return {"draft": draft, "attempts": state.get("attempts", 0) + 1, "prompts_sent": sent, "stage": "synthesize"}
 
     async def verify(state: PolicyState) -> dict:
@@ -247,7 +251,8 @@ def make_policy_graph(db: Session, synthesize_fn: SynthesizeFn | None = None):
         if state.get("attempts", 0) >= MAX_ATTEMPTS and lexical:
             # Model không viết được câu bám nguồn, nhưng đã có đoạn khớp từ khóa đủ ngưỡng:
             # trích nguyên văn (luôn đúng nguồn) thay vì nói "không tìm thấy".
-            mode = "extractive_timeout" if state.get("timed_out") else "extractive_fallback"
+            mode = ("extractive_timeout" if state.get("timed_out")
+                    else "extractive_error" if state.get("llm_error") else "extractive_fallback")
             return {"draft": extractive_answer(lexical), "outcome": "answered", "mode": mode, "stage": "verify"}
         return {
             "draft": "",

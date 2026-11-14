@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -78,8 +78,16 @@ class Settings(BaseSettings):
     retrieval_top_k: int = Field(default=4, ge=1, le=10)
     # Embedding (R9.2) — chỉ dùng khi có API key; chưa tinh chỉnh với model thật
     embedding_model: str = "text-embedding-3-small"
-    embedding_min_similarity: float = Field(default=0.5, ge=0.0, le=1.0)
+    # None = dùng ngưỡng đã hiệu chỉnh theo model (policy_index.CALIBRATED_SIMILARITY); đặt số để ghi đè
+    embedding_min_similarity: float | None = Field(default=None, ge=0.0, le=1.0)
     embedding_weight: float = Field(default=8.0, ge=0.0)
+
+
+    @field_validator("embedding_min_similarity", mode="before")
+    @classmethod
+    def _blank_is_none(cls, value):
+        # `EMBEDDING_MIN_SIMILARITY=` để trống trong .env → dùng ngưỡng theo model, không lỗi parse
+        return None if isinstance(value, str) and not value.strip() else value
 
 
 @lru_cache
