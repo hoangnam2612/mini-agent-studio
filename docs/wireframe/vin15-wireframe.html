@@ -1,0 +1,748 @@
+<title>Wireframe Cổng thực tập VIN-15</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: mỗi màn là một tờ A4 ngang — khung tên trên cùng, desktop | mobile | chú thích, chân trang.
+   Quy ước wireframe low-fi: thang xám thuần, một màu redline cho chú thích, nhãn chữ thật, thanh xám thay đoạn văn,
+   ô X thay ảnh/avatar. Một giao diện duy nhất (giấy trắng) vì tài liệu để in/nộp — không có bản tối. */
+:root {
+  --paper: #ffffff;      /* tờ giấy */
+  --desk: #e9e9e6;       /* nền bàn quanh các tờ (chỉ trên màn hình) */
+  --ink: #1c1c1a;        /* chữ, viền đậm */
+  --line: #8c8c87;       /* viền thành phần */
+  --soft: #cfcfca;       /* viền mờ, thanh chữ */
+  --fill: #ececea;       /* nền ô nhập, thẻ */
+  --fill2: #f6f6f4;      /* nền vùng phụ */
+  --red: #c4351d;        /* redline: số chú thích, ghi chú thiết kế */
+  --f-ui: "Be Vietnam Pro", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--desk); color: var(--ink); font-family: var(--f-ui); font-size: 14px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 48px; }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+
+/* ---------- thanh công cụ (chỉ màn hình) ---------- */
+.toolbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--desk); padding-block: 12px;
+  display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; max-width: 1123px; margin: 0 auto; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 21; background: var(--desk); }
+.toolbar b { font-size: 13px; }
+.toolbar nav { display: flex; flex-wrap: wrap; gap: 4px; }
+.toolbar nav a { font: 600 11px var(--f-mono); text-decoration: none; padding: 3px 7px; border: 1px solid var(--line); border-radius: 3px; background: var(--paper); }
+.toolbar nav a.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.toolbar .hint { font-size: 12px; color: #55554f; }
+
+/* ---------- tờ A4 ---------- */
+.sheet { background: var(--paper); width: 100%; max-width: 1123px; margin: 0 auto 28px; box-shadow: 0 1px 3px rgba(0,0,0,.18);
+  display: grid; grid-template-rows: auto 1fr auto; padding: 18px 22px 12px; gap: 12px; }
+@media (min-width: 1000px) { .sheet { aspect-ratio: 297 / 210; } }
+body.solo .sheet { display: none; }
+body.solo .sheet.show { display: grid; }
+
+.tb { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: end; border-bottom: 2px solid var(--ink); padding-bottom: 8px; }
+.tb__id { font: 700 26px/1 var(--f-mono); letter-spacing: -.02em; }
+.tb__name { font-size: 19px; font-weight: 700; }
+.tb__purpose { font-size: 12px; color: #4b4b46; max-width: 62ch; margin-top: 2px; }
+.tb__meta { display: grid; grid-template-columns: repeat(3, auto); gap: 2px 14px; font-size: 10.5px; }
+.tb__meta dt { color: #6a6a64; text-transform: uppercase; letter-spacing: .06em; font-size: 9px; }
+.tb__meta dd { margin: 0 0 2px; font-weight: 600; }
+.tb__meta .mono { font-family: var(--f-mono); font-weight: 500; }
+.foot { display: flex; justify-content: space-between; gap: 12px; font-size: 9.5px; color: #6a6a64; border-top: 1px solid var(--soft); padding-top: 5px; }
+.foot span:last-child { font-family: var(--f-mono); }
+
+.body { display: grid; grid-template-columns: minmax(0, 1fr) 222px 236px; gap: 16px; min-height: 0; }
+@media (max-width: 999px) { .body { grid-template-columns: 1fr; } .tb { grid-template-columns: 1fr; } .tb__meta { grid-template-columns: repeat(2, auto); } }
+.col { display: flex; flex-direction: column; gap: 5px; min-height: 0; min-width: 0; }
+.col__label { font: 700 9px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: #6a6a64; }
+
+/* ---------- khung thiết bị ---------- */
+.dev { flex: 1; min-height: 0; border: 1.5px solid var(--ink); background: var(--paper); display: flex; flex-direction: column; position: relative; overflow: hidden; }
+.dev--desk { border-radius: 6px; }
+.dev--phone { border-radius: 18px; border-width: 2px; max-width: 222px; }
+@media (max-width: 999px) { .dev { flex: none; } .dev--desk { min-height: 420px; } .dev--phone { min-height: 520px; align-self: center; width: 222px; } }
+.chrome { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-bottom: 1px solid var(--line); background: var(--fill2); }
+.chrome i { width: 7px; height: 7px; border-radius: 50%; border: 1px solid var(--line); display: inline-block; }
+.chrome .url { flex: 1; font: 500 9px var(--f-mono); border: 1px solid var(--soft); border-radius: 3px; padding: 2px 6px; background: var(--paper); color: #55554f; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.status { display: flex; justify-content: space-between; padding: 6px 14px 2px; font: 600 7px var(--f-mono); color: #55554f; }
+.vp { flex: 1; min-height: 0; overflow: hidden; container-type: inline-size; position: relative; }
+.dev--desk .vp { font-size: 8.6px; }
+.dev--phone .vp { font-size: 7.2px; }
+.dev.cut::after { content: "↓ trang còn tiếp khi cuộn"; position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 0 4px; text-align: center;
+  font: 600 8px var(--f-mono); color: var(--red); background: linear-gradient(transparent, var(--paper) 55%); }
+
+/* ---------- chú thích ---------- */
+.notes { flex: 1; border-left: 1px solid var(--soft); padding-left: 12px; overflow: hidden; display: flex; flex-direction: column; gap: 6px; }
+@media (max-width: 999px) { .notes { border-left: 0; padding-left: 0; } }
+.notes ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.notes li { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 6px; font-size: 10.2px; line-height: 1.38; }
+.notes .n { width: 15px; height: 15px; border-radius: 50%; background: var(--red); color: #fff; font: 700 8.5px/15px var(--f-mono); text-align: center; }
+.fr { font: 500 8.5px var(--f-mono); color: var(--red); white-space: nowrap; }
+.notes .states { margin-top: auto; font-size: 9.5px; border-top: 1px dashed var(--soft); padding-top: 6px; color: #4b4b46; }
+.notes .states b { color: var(--ink); }
+
+/* ---------- thành phần wireframe (đơn vị em, co theo khung) ---------- */
+.mk { display: inline-block; width: 1.75em; height: 1.75em; border-radius: 50%; background: var(--red); color: #fff;
+  font: 700 1em/1.75em var(--f-mono); text-align: center; vertical-align: middle; margin: 0 .35em; flex: none; }
+.dev--phone .mk { display: none; }
+.app { display: grid; grid-template-columns: 15em minmax(0, 1fr); height: 100%; }
+.side { border-right: 1px solid var(--line); padding: 1.6em 1.1em; display: flex; flex-direction: column; gap: 1.1em; background: var(--fill2); }
+.brand { display: flex; align-items: center; gap: .7em; font-weight: 700; font-size: 1.15em; }
+.x { display: inline-block; flex: none; border: 1px solid var(--line); background:
+  linear-gradient(to top right, transparent calc(50% - .5px), var(--line) 50%, transparent calc(50% + .5px)),
+  linear-gradient(to top left, transparent calc(50% - .5px), var(--line) 50%, transparent calc(50% + .5px)), var(--paper); }
+.x--brand { width: 2.6em; height: 2.6em; border-radius: .4em; }
+.x--av { width: 2.8em; height: 2.8em; border-radius: 50%; }
+.x--img { width: 100%; border-radius: .3em; }
+.nav { display: flex; flex-direction: column; gap: .3em; }
+.nav span { display: flex; align-items: center; gap: .7em; padding: .65em .8em; border-radius: .35em; }
+.nav span.on { background: var(--fill); font-weight: 700; box-shadow: inset .25em 0 0 var(--ink); }
+.ic { width: 1.25em; height: 1.25em; border: 1.2px solid var(--line); border-radius: .2em; flex: none; display: inline-block; }
+.toggle { display: inline-flex; border: 1px solid var(--line); border-radius: .4em; padding: .2em; gap: .2em; align-self: flex-start; }
+.toggle i { width: 2.2em; height: 1.9em; border-radius: .3em; display: block; border: 1px solid var(--soft); }
+.toggle i.on { border-color: var(--ink); }
+.user { margin-top: auto; display: flex; align-items: center; gap: .7em; border: 1px solid var(--soft); border-radius: .4em; padding: .7em; background: var(--paper); }
+.user small { display: block; color: #66665f; }
+.main { padding: 1.4em 2.6em 2.4em; display: flex; flex-direction: column; gap: 1.3em; min-width: 0; }
+.bell { align-self: flex-end; position: relative; width: 2.8em; height: 2.8em; border: 1px solid var(--line); border-radius: .5em; display: grid; place-items: center; }
+.bell .ic { border-radius: 50% 50% .2em .2em; }
+.bell b { position: absolute; top: -.5em; right: -.5em; min-width: 1.5em; height: 1.5em; border-radius: 1em; background: var(--ink); color: #fff; font-size: .8em; display: grid; place-items: center; }
+.ph h1 { font-size: 2.3em; line-height: 1.1; }
+.ph p { margin: .3em 0 0; color: #55554f; }
+.ph { display: flex; justify-content: space-between; align-items: flex-end; gap: 1em; flex-wrap: wrap; }
+.card { border: 1px solid var(--line); border-radius: .45em; padding: 1.3em 1.5em; display: flex; flex-direction: column; gap: 1em; background: var(--paper); }
+.card__h { display: flex; justify-content: space-between; align-items: center; gap: 1em; }
+.card__h h3 { font-size: 1.35em; display: flex; align-items: center; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: .9em 1.3em; }
+.f { display: flex; flex-direction: column; gap: .35em; min-width: 0; }
+.f label { font-weight: 600; font-size: .92em; }
+.inp { border: 1px solid var(--line); border-radius: .35em; min-height: 2.6em; padding: .55em .8em; color: #55554f; background: var(--paper);
+  overflow: hidden; white-space: nowrap; text-overflow: ellipsis; display: flex; align-items: center; justify-content: space-between; gap: .5em; }
+.inp.ta { min-height: 5em; align-items: flex-start; white-space: normal; }
+.inp.sel::after { content: "▾"; color: var(--ink); }
+.inp.ph-only { color: #9a9a94; }
+.f.ai .inp { border-style: dashed; border-width: 1.5px; background: repeating-linear-gradient(-45deg, var(--paper) 0 .5em, var(--fill2) .5em 1em); }
+.tag { font-size: .78em; font-weight: 700; border: 1px dashed var(--ink); border-radius: .3em; padding: 0 .4em; margin-left: .5em; }
+.btns { display: flex; flex-wrap: wrap; gap: .6em; align-items: center; }
+.btn { display: inline-flex; align-items: center; gap: .5em; min-height: 2.8em; padding: .5em 1.2em; border: 1.2px solid var(--ink); border-radius: .4em; font-weight: 600; background: var(--paper); white-space: nowrap; }
+.btn--p { background: var(--ink); color: #fff; }
+.btn--d { border-style: dashed; }
+.btn--sm { min-height: 2.2em; padding: .3em .8em; font-size: .92em; }
+.badge { display: inline-block; border: 1px solid var(--ink); border-radius: 1em; padding: .1em .7em; font-size: .85em; font-weight: 600; white-space: nowrap; background: var(--paper); }
+.badge--fill { background: var(--fill); }
+.alert { border: 1px solid var(--line); border-left: .4em solid var(--ink); border-radius: .35em; padding: .8em 1em; background: var(--fill2); }
+.alert b { display: block; }
+.next { border: 1.5px solid var(--ink); border-radius: .45em; padding: .9em 1.1em; display: flex; align-items: center; gap: .8em; font-weight: 600; }
+.next .ic { width: 2em; height: 2em; }
+.aibox { border: 1.5px dashed var(--ink); border-radius: .45em; padding: 1em 1.1em; background: repeating-linear-gradient(-45deg, var(--paper) 0 .6em, var(--fill2) .6em 1.2em);
+  display: flex; flex-direction: column; gap: .5em; }
+.aibox > b { font-size: .9em; }
+.tbar { display: block; height: .7em; border-radius: .35em; background: var(--soft); }
+.lines { display: flex; flex-direction: column; gap: .5em; padding-block: .2em; }
+.small { font-size: .9em; color: #55554f; }
+.muted { color: #77776f; }
+.row { display: flex; gap: .8em; align-items: center; flex-wrap: wrap; }
+.spread { justify-content: space-between; }
+.kv { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .6em 1.2em; }
+.kv div span { display: block; font-size: .85em; color: #6a6a64; }
+.kv div b { font-weight: 600; }
+.tl { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.tl li { display: grid; grid-template-columns: 2.6em minmax(0, 1fr) auto; gap: .9em; padding-bottom: 1.1em; position: relative; }
+.tl li::before { content: ""; position: absolute; left: 1.25em; top: 2.4em; bottom: 0; border-left: 2px solid var(--ink); }
+.tl li.todo::before { border-left-style: dashed; border-left-color: var(--line); }
+.tl li:last-child::before { display: none; }
+.dot { width: 2.4em; height: 2.4em; border: 1.5px solid var(--ink); border-radius: .4em; display: grid; place-items: center; font-weight: 700; background: var(--paper); z-index: 1; }
+.dot.done { background: var(--ink); color: #fff; }
+.dot.cur { width: 2.8em; height: 2.8em; box-shadow: 0 0 0 .3em var(--fill); border-width: 2.5px; }
+.tl .t { font-weight: 700; }
+.tl li > .badge { align-self: start; }
+.chip { display: inline-block; border: 1px solid var(--line); border-radius: 1em; padding: .25em .8em; font-size: .9em; }
+.tbl { width: 100%; border-collapse: collapse; font-size: .92em; }
+.tbl th { text-align: left; font-weight: 600; color: #55554f; border-bottom: 1.2px solid var(--ink); padding: .5em .6em; white-space: nowrap; }
+.tbl td { border-bottom: 1px solid var(--soft); padding: .55em .6em; vertical-align: top; }
+.tbl-wrap { overflow: hidden; }
+.prog { display: block; width: 6em; height: .7em; border: 1px solid var(--ink); border-radius: .4em; background: linear-gradient(to right, var(--ink) var(--p), transparent var(--p)); }
+.chat { display: flex; flex-direction: column; gap: .8em; }
+.msg { max-width: 82%; border: 1px solid var(--line); border-radius: .6em; padding: .8em 1em; display: flex; flex-direction: column; gap: .5em; }
+.msg--u { align-self: flex-end; background: var(--fill); border-color: var(--fill); }
+.src { border-top: 1px dashed var(--line); padding-top: .5em; display: flex; flex-direction: column; gap: .3em; font-size: .9em; }
+.src span::before { content: "▸ "; }
+.panel { border: 1px solid var(--line); border-radius: .4em; padding: 1em; background: var(--fill2); display: flex; flex-direction: column; gap: .7em; }
+.overlay { position: absolute; z-index: 5; right: 2.6em; top: 4.6em; width: 24em; border: 1.5px solid var(--ink); border-radius: .5em; background: var(--paper);
+  box-shadow: .4em .4em 0 var(--fill); padding: .8em; display: flex; flex-direction: column; gap: .2em; }
+.overlay .it { padding: .6em .5em; border-bottom: 1px solid var(--soft); }
+.overlay .it.unread b { font-weight: 700; }
+.scrim { position: absolute; inset: 0; background: rgba(255,255,255,.55); z-index: 4; }
+.split { display: grid; grid-template-columns: 1.15fr 1fr; height: 100%; }
+.split__hero { background: var(--fill); padding: 3em; display: flex; flex-direction: column; gap: 1.4em; border-right: 1px solid var(--line); }
+.split__hero h1 { font-size: 3em; line-height: 1.08; max-width: 12ch; }
+.split__form { padding: 3em 3.6em; display: flex; flex-direction: column; justify-content: center; gap: 1em; }
+.path { height: 5em; border-bottom: 2px dashed var(--line); width: 70%; position: relative; }
+.path i { position: absolute; bottom: -.7em; width: 1.4em; height: 1.4em; border: 1.5px solid var(--ink); background: var(--paper); border-radius: .3em; }
+
+/* ---------- mobile: cùng nội dung, bố cục theo khung hẹp ---------- */
+@container (max-width: 320px) {
+  .app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .side { border-right: 0; border-bottom: 1px solid var(--line); padding: 1.2em 1.4em; gap: .9em; display: grid; grid-template-columns: 1fr auto; align-items: center; }
+  .side .nav { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; gap: .2em .4em; }
+  .side .nav span { padding: .5em .6em; }
+  .side .nav span.on { box-shadow: inset 0 -.25em 0 var(--ink); }
+  .side .user { grid-column: 1 / -1; margin-top: 0; }
+  .main { padding: 1.2em 1.4em 2em; }
+  .grid2, .kv { grid-template-columns: 1fr; }
+  .split { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .split__hero { padding: 1.8em 1.6em; border-right: 0; border-bottom: 1px solid var(--line); }
+  .split__hero h1 { font-size: 2.2em; }
+  .split__hero .path, .split__hero .lines { display: none; }
+  .split__form { padding: 2em 1.6em; justify-content: flex-start; }
+  .msg { max-width: 92%; }
+  .overlay { right: 1em; left: 1em; width: auto; top: 9em; }
+  .hide-m { display: none !important; }
+}
+
+/* ---------- bìa & sơ đồ ---------- */
+.cover { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 26px; min-height: 0; }
+@media (max-width: 999px) { .cover { grid-template-columns: 1fr; } }
+.cover h1 { font-size: 34px; line-height: 1.08; letter-spacing: -.01em; }
+.cover p { margin: 0; font-size: 12.5px; max-width: 60ch; }
+.cover .stack { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.cover h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .07em; }
+.facts { display: grid; grid-template-columns: auto 1fr; gap: 3px 14px; font-size: 11.5px; margin: 0; }
+.facts dt { color: #6a6a64; } .facts dd { margin: 0; font-weight: 600; }
+.legend { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 14px; font-size: 10.5px; }
+.legend > div { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.legend .sw { flex: none; width: 46px; font-size: 7.5px; display: flex; justify-content: center; }
+.index { width: 100%; border-collapse: collapse; font-size: 10.5px; }
+.index th { text-align: left; border-bottom: 1.5px solid var(--ink); padding: 3px 6px; font-size: 9px; text-transform: uppercase; letter-spacing: .06em; color: #55554f; }
+.index td { border-bottom: 1px solid var(--soft); padding: 3px 6px; }
+.index td:first-child { font-family: var(--f-mono); font-weight: 700; }
+.index a { text-decoration: none; }
+.index-wrap { overflow-x: auto; }
+.howto { font-size: 10.8px; border: 1px dashed var(--line); padding: 8px 10px; border-radius: 4px; }
+.howto ol { margin: 4px 0 0; padding-left: 18px; }
+.flow-wrap { min-height: 0; overflow-x: auto; display: flex; flex-direction: column; gap: 10px; }
+.flow-wrap svg { width: 100%; min-width: 760px; height: auto; display: block; }
+.flow-wrap svg text { font-family: var(--f-ui); }
+</style>
+
+<div class="toolbar" id="toolbar">
+  <b>Wireframe VIN-15</b>
+  <nav id="toc" aria-label="Các tờ"></nav>
+  <span class="hint" id="hint">Bấm một mã để xem riêng màn đó · “Tất cả” để xem toàn bộ.</span>
+</div>
+<div id="sheets"></div>
+
+<script>
+/* ===== Dữ liệu chung ===== */
+const META = { project: "VIN-15 · Cổng thực tập (Hệ thống hỗ trợ thực tập bằng AI)", version: "1.0", date: "14/11/2026", fidelity: "Low-fi", source: "Frontend React (main c3e71ab) · PRD v0.5" };
+const NAV = {
+  student: ["Hồ sơ của tôi", "Nhật ký", "Trợ lý AI", "Quy định"],
+  lecturer: ["Hàng chờ duyệt", "Sinh viên", "Cảnh báo", "Trợ lý AI", "Quy định"],
+  admin: ["Quản trị", "Danh sách", "Quy định", "Trợ lý AI"],
+};
+const USERS = { student: ["Phạm Ngọc Dũng", "Sinh viên"], lecturer: ["TS. Đỗ Quốc Huy", "Giảng viên"], admin: ["Quản trị viên Đào tạo", "Quản trị viên"] };
+const ROLE = { student: "Sinh viên", lecturer: "Giảng viên", admin: "Quản trị viên (tùy chọn)", any: "Mọi vai trò", guest: "Chưa đăng nhập" };
+
+/* ===== Thành phần ===== */
+const mk = (n) => `<span class="mk" aria-label="Chú thích ${n}">${n}</span>`;
+const ic = () => `<span class="ic"></span>`;
+const bar = (w) => `<span class="tbar" style="width:${w}%"></span>`;
+const lines = (...ws) => `<div class="lines">${ws.map(bar).join("")}</div>`;
+const btn = (t, v = "", n) => `<span class="btn ${v ? "btn--" + v : ""}">${n ? mk(n) : ""}${t}</span>`;
+const badge = (t, fill) => `<span class="badge ${fill ? "badge--fill" : ""}">${t}</span>`;
+const field = (label, val, o = {}) => `<div class="f ${o.ai ? "ai" : ""}" ${o.span ? 'style="grid-column:1/-1"' : ""}><label>${o.n ? mk(o.n) : ""}${label}${o.ai ? '<span class="tag">AI điền</span>' : ""}</label>
+  <span class="inp ${o.ta ? "ta" : ""} ${o.sel ? "sel" : ""} ${o.ph ? "ph-only" : ""}">${val}</span></div>`;
+const card = (title, body, right = "", n) => `<div class="card"><div class="card__h"><h3>${n ? mk(n) : ""}${title}</h3>${right}</div>${body}</div>`;
+const ph = (t, sub = "", right = "", n) => `<div class="ph"><div><h1>${n ? mk(n) : ""}${t}</h1>${sub ? `<p>${sub}</p>` : ""}</div>${right}</div>`;
+const alertBox = (t, body, n) => `<div class="alert">${n ? mk(n) : ""}<b>${t}</b><span class="small">${body}</span></div>`;
+const aibox = (body, n) => `<div class="aibox"><b>${n ? mk(n) : ""}✧ Gợi ý của AI — chỉ để tham khảo, GV là người quyết định</b>${body}</div>`;
+const table = (heads, rows, n) => `<div class="tbl-wrap">${n ? mk(n) : ""}<table class="tbl"><tr>${heads.map((h) => `<th>${h}</th>`).join("")}</tr>${rows.map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join("")}</tr>`).join("")}</table></div>`;
+
+function shell(role, active, content, opts = {}) {
+  const [name, label] = USERS[role];
+  const nav = NAV[role].map((t, i) => `<span class="${i === active ? "on" : ""}">${ic()}${t}</span>`).join("");
+  return `<div class="app">
+    <aside class="side">
+      <div class="brand"><span class="x x--brand"></span>Cổng thực tập</div>
+      <div class="toggle hide-d"><i class="on"></i><i></i><i></i></div>
+      <nav class="nav">${nav}</nav>
+      <div class="toggle hide-m-only"><i class="on"></i><i></i><i></i></div>
+      <div class="user"><span class="x x--av"></span><div style="flex:1;min-width:0"><b>${name}</b><small>${label}</small></div>${ic()}</div>
+    </aside>
+    <main class="main">${opts.bell === false ? "" : `<div class="bell">${opts.bellMk ? mk(opts.bellMk) : ""}${ic()}<b>${opts.unread ?? 1}</b></div>`}${content}</main>
+  </div>${opts.after || ""}`;
+}
+
+/* ===== Các màn =====
+   d: nội dung (dùng chung cho desktop và mobile — CSS container query đổi bố cục)
+   notes: [số, nội dung, mã FR] — số khớp với chấm đỏ trên bản desktop */
+const SCREENS = [
+{
+  id: "S01", name: "Đăng nhập", role: "guest", route: "#/  (chưa đăng nhập)",
+  purpose: "Vào hệ thống bằng tài khoản trường hoặc SSO. Cửa duy nhất cho cả ba vai trò.",
+  states: "Sai mật khẩu → báo lỗi dưới form · Sai 5 lần/15 phút → “Tài khoản tạm khóa…” · SSO lỗi → thông báo nổi.",
+  notes: [
+    [1, "Form tên đăng nhập + mật khẩu, nút chính toàn chiều rộng.", "FR-1.1"],
+    [2, "Nút SSO chỉ hiện khi máy chủ cấu hình OIDC.", "FR-1.2"],
+    [3, "Lỗi đăng nhập hiện ngay dưới form; sau 5 lần sai trong 15 phút tài khoản bị khóa tạm.", "FR-1.7 · FR-1.8"],
+    [4, "Khối tài khoản demo chỉ có ở môi trường demo; bấm để điền sẵn.", "—"],
+    [5, "Chọn giao diện Tự động / Sáng / Tối, lưu theo trình duyệt.", "NFR-3"],
+  ],
+  d: () => `<div class="split">
+    <div class="split__hero"><div class="brand"><span class="x x--brand"></span>Cổng thực tập</div>
+      <div style="margin-top:auto"></div>
+      <h1>Mỗi chặng thực tập, một bước rõ ràng.</h1>
+      ${lines(78, 64)}
+      <div class="path"><i style="left:0"></i><i style="left:32%"></i><i style="left:64%"></i><i style="right:0"></i></div>
+      <div style="margin-top:auto" class="small">Hệ thống hỗ trợ thực tập bằng AI · VIN-15</div></div>
+    <div class="split__form">
+      <div class="toggle">${mk(5)}<i class="on"></i><i></i><i></i></div>
+      <h2 style="font-size:1.9em">Chào mừng quay lại</h2><span class="small">Đăng nhập để tiếp tục.</span>
+      ${field("Tên đăng nhập", "ví dụ: sv03", { ph: 1, n: 1 })}
+      ${field("Mật khẩu", "••••••••", { ph: 1 })}
+      ${btn("Đăng nhập", "p")}
+      ${alertBox("Sai tên đăng nhập hoặc mật khẩu", "Trạng thái lỗi (ẩn khi chưa có lỗi)", 3)}
+      ${btn("Đăng nhập bằng tài khoản trường (SSO)", "", 2)}
+      <div class="panel">${mk(4)}<span class="small">Tài khoản demo · mật khẩu demo123 (bấm để điền)</span><div class="row"><span class="chip">sv03 · Sinh viên</span><span class="chip">gv01 · Giảng viên</span><span class="chip">admin · Quản trị</span></div></div>
+    </div></div>`,
+},
+{
+  id: "S02", name: "Sinh viên — chưa có hồ sơ", role: "student", route: "#/",
+  purpose: "Trạng thái trống đầu tiên: cho biết đợt, khung thời gian và một hành động duy nhất là tạo hồ sơ.",
+  states: "Sau khi bấm → chuyển sang S03 (hồ sơ nháp).",
+  notes: [
+    [1, "Lời chào theo tên + tên đợt thực tập hiện hành.", "—"],
+    [2, "Khung thời gian của đợt và thời lượng tối thiểu 8 tuần (theo quy chế).", "FR-2.4"],
+    [3, "Một nút chính duy nhất: tạo hồ sơ nháp.", "FR-2.1"],
+    [4, "Menu bên trái theo vai trò Sinh viên; mục đang chọn có vạch đậm bên trái.", "—"],
+  ],
+  d: () => shell("student", 0, `
+    ${ph("Xin chào, Dũng", "Đợt thực tập: Thực tập doanh nghiệp HK1 2026–2027", "", 1)}
+    ${card("Bạn chưa có hồ sơ thực tập", `<span class="small">${mk(2)}Tạo hồ sơ nháp để bắt đầu đăng ký. Khung thời gian: 15/09/2026 – 13/04/2027 · tối thiểu 8 tuần.</span>
+      <div class="btns">${btn("Tạo hồ sơ đăng ký", "p", 3)}</div>`)}
+    <div class="small" style="margin-top:auto">${mk(4)}Menu: Hồ sơ của tôi · Nhật ký · Trợ lý AI · Quy định</div>`, { unread: 0 }),
+},
+{
+  id: "S03", name: "Sinh viên — hồ sơ nháp, điền từ file", role: "student", route: "#/",
+  purpose: "Khai báo hồ sơ đăng ký: AI đọc giấy tiếp nhận và gợi ý, sinh viên kiểm tra rồi mới nộp.",
+  states: "Đang đọc file… · File sai định dạng → lỗi dưới nút tải · Kiểm tra đạt → “Hồ sơ đạt mọi kiểm tra của quy chế”.",
+  notes: [
+    [1, "Tải giấy tiếp nhận PDF/DOCX/TXT để AI đọc.", "FR-2.2"],
+    [2, "Bảng gợi ý có độ tin cậy từng trường; trường không chắc ghi “cần nhập tay”.", "FR-2.2 · FR-2.3"],
+    [3, "Trường do AI điền: viền nét đứt + nhãn “AI điền”; sửa tay thì nhãn mất.", "FR-2.6"],
+    [4, "Lỗi kiểm tra theo quy chế, mỗi lỗi kèm điều khoản căn cứ.", "FR-2.4 · FR-2.5"],
+    [5, "Lưu nháp · Kiểm tra · Xác nhận & nộp (nộp chỉ thành công khi đạt mọi luật).", "FR-2.7 · FR-2.8"],
+  ],
+  d: () => shell("student", 0, `
+    ${ph("Xin chào, An", "Đợt Thực tập doanh nghiệp HK1 2026–2027 · GV phụ trách: TS. Lê Minh Tâm")}
+    ${card("Thông tin đăng ký", `
+      ${aibox(`<span class="small">Gợi ý của AI — hãy kiểm tra trước khi nộp · nguồn: mô hình AI · khớp DN đã có: Công ty TNHH Giải pháp Phần mềm Sao Mai</span>
+        ${table(["Trường", "Giá trị gợi ý", "Độ tin cậy"], [["Tên doanh nghiệp", "Công ty TNHH Giải pháp Phần mềm Sao Mai", "100%"], ["Mã số thuế", "0101234567", "90%"], ["Ngày bắt đầu", "05/01/2027", "85%"], ["SĐT người hướng dẫn", "<i class='muted'>cần nhập tay</i>", "0%"]], 2)}
+        <div class="btns">${btn("Điền vào form", "p", "")}</div>`)}
+      <div class="grid2">
+        ${field("Tên doanh nghiệp", "Công ty TNHH Giải pháp Phần mềm Sao Mai", { ai: 1, n: 3 })}
+        ${field("Mã số thuế", "0101234567", { ai: 1 })}
+        ${field("Vị trí thực tập", "Thực tập sinh Backend", { ai: 1 })}
+        ${field("Người hướng dẫn tại DN", "Ông Trần Quốc Bảo")}
+        ${field("Ngày bắt đầu", "05/01/2027", { ai: 1 })}
+        ${field("Ngày kết thúc", "16/02/2027")}
+      </div>
+      <div class="alert">${mk(4)}<b>Thời lượng 6.0 tuần, quy chế yêu cầu tối thiểu 8 tuần</b><span class="small">Căn cứ: QĐ-TT/2026 · Điều 5 / Khoản 2</span></div>
+      <div class="btns">${btn("Lưu nháp", "", 5)}${btn("Kiểm tra theo quy chế")}${btn("Xác nhận & nộp hồ sơ", "p")}</div>`,
+      `<span class="row">${badge("Nháp")}${btn("↑ Điền từ file giấy tiếp nhận", "sm", 1)}</span>`)}`, { unread: 0 }),
+},
+{
+  id: "S04", name: "Sinh viên — đang thực tập", role: "student", route: "#/",
+  purpose: "Trang làm việc hằng ngày: việc tiếp theo, cảnh báo, lộ trình mốc và các thao tác nộp/xin gia hạn.",
+  states: "Hết mốc → “Bạn đã hoàn thành mọi mốc bắt buộc” · Hồ sơ bị yêu cầu sửa → khối nhận xét GV ở đầu trang.",
+  notes: [
+    [1, "Dòng “Việc tiếp theo”: tên mốc, hạn, còn/quá bao nhiêu ngày.", "FR-4.3"],
+    [2, "Cảnh báo do tác tử giám sát sinh ra (thiếu giờ, quá hạn…).", "FR-7.5"],
+    [3, "Lộ trình mốc: chặng xong tô đậm, chặng hiện tại to hơn, chặng sau nét đứt.", "FR-4.2 · FR-4.3"],
+    [4, "Chọn loại minh chứng → Tải minh chứng → Nộp mốc.", "FR-4.4 · FR-4.6"],
+    [5, "Form xin gia hạn: hạn mới ≤ 14 ngày, lý do, minh chứng tùy chọn; GV quyết định.", "FR-8.1"],
+    [6, "Mỗi mốc ghi căn cứ quy chế.", "FR-4.1"],
+  ],
+  d: () => shell("student", 0, `
+    ${ph("Xin chào, Dũng", "Đợt Thực tập doanh nghiệp HK1 2026–2027 · GV phụ trách: TS. Đỗ Quốc Huy")}
+    <div class="next">${mk(1)}${ic()}Việc tiếp theo: Nộp báo cáo giữa kỳ <span class="muted" style="font-weight:400">· hạn 19/11/2026 (còn 5 ngày)</span></div>
+    ${alertBox("Cảnh báo", "Tổng giờ nhật ký 72h thấp hơn kỳ vọng 102.4h sau 4 tuần", 2)}
+    ${card("Các mốc bắt buộc", `<ol class="tl">
+      <li><span class="dot done">✓</span><div><span class="t">Nộp giấy xác nhận tiếp nhận của doanh nghiệp</span><div class="small">Hạn 22/10/2026 · Đã tải: acceptance_letter.pdf</div><div class="small muted">${mk(6)}Căn cứ: QĐ-TT/2026 · Điều 7 / Khoản 1</div></div>${badge("Đã chấp nhận", 1)}</li>
+      <li><span class="dot done">✓</span><div><span class="t">Đề cương thực tập được duyệt</span><div class="small">Hạn 29/10/2026 · cập nhật theo đề cương</div></div>${badge("Đã chấp nhận", 1)}</li>
+      <li class="todo"><span class="dot cur">3</span><div><span class="t">${mk(3)}Nộp báo cáo giữa kỳ</span> <span class="chip">Chặng tiếp theo</span><div class="small">Hạn 19/11/2026 · còn 5 ngày · Minh chứng yêu cầu: Báo cáo giữa kỳ</div>
+        <div class="btns" style="margin-top:.5em"><span class="inp sel" style="min-width:11em">Báo cáo giữa kỳ</span>${btn("↑ Tải minh chứng", "sm", 4)}${btn("Nộp mốc", "p")}${btn("Xin gia hạn", "sm")}</div>
+        <div class="panel" style="margin-top:.6em"><b>${mk(5)}Xin gia hạn: Nộp báo cáo giữa kỳ</b><span class="small">Hạn hiện tại 19/11/2026 · mỗi lần không quá 14 ngày (QĐ-TT/2026 · Điều 10 / Khoản 2)</span>
+          <div class="grid2">${field("Hạn mới đề xuất", "dd/mm/yyyy", { ph: 1 })}${field("Minh chứng (tùy chọn)", "Chọn tệp…", { ph: 1 })}</div>${field("Lý do", "", { ta: 1 })}<div class="btns">${btn("Gửi yêu cầu", "p")}${btn("Hủy")}</div></div></div>${badge("Chưa nộp")}</li>
+      <li class="todo"><span class="dot">4</span><div><span class="t">Nộp phiếu đánh giá của doanh nghiệp (bản ký)</span><div class="small">Hạn 24/12/2026 · còn 40 ngày</div></div>${badge("Chưa nộp")}</li>
+      <li class="todo"><span class="dot">5</span><div><span class="t">Nộp báo cáo cuối kỳ</span><div class="small">Hạn 31/12/2026 · còn 47 ngày</div></div>${badge("Chưa nộp")}</li></ol>`)}
+    ${card("Đề cương thực tập", lines(96, 88, 52), badge("Đã duyệt", 1))}`),
+},
+{
+  id: "S05", name: "Sinh viên — nhật ký tuần", role: "student", route: "#/logs",
+  purpose: "Ghi việc đã làm và số giờ mỗi tuần để GV theo dõi; nhật ký bị trả lại có thể sửa và gửi lại.",
+  states: "Hồ sơ chưa duyệt → “Nhật ký mở sau khi hồ sơ đăng ký được duyệt.” · Chưa có dòng nào → “Chưa có nhật ký.”",
+  notes: [
+    [1, "Tổng giờ đã ghi so với chuẩn 32 giờ/tuần (bán thời gian 16).", "FR-7.2"],
+    [2, "Form tuần · số giờ · công việc đã làm · khó khăn; tuần đã có thì báo trùng.", "FR-4.7"],
+    [3, "Bảng các tuần: trạng thái, nhận xét của GV.", "FR-4.8"],
+    [4, "Đính kèm file vào từng tuần.", "FR-4.7"],
+    [5, "Tuần bị trả lại có nút “Sửa & gửi lại”.", "FR-4.8"],
+  ],
+  d: () => shell("student", 1, `
+    ${ph("Nhật ký tuần", "Tổng 72 giờ · quy chế: trung bình 32 giờ/tuần (QĐ-TT/2026 · Điều 8 / Khoản 2)", "", 1)}
+    ${card("Ghi nhật ký mới", `<div class="grid2">${field("Tuần", "5", { n: 2 })}${field("Số giờ", "0–80", { ph: 1 })}</div>
+      ${field("Công việc đã làm", "", { ta: 1 })}${field("Khó khăn (nếu có)", "", { ta: 1 })}<div class="btns">${btn("Ghi nhật ký", "p")}</div>`)}
+    ${card("Các tuần đã ghi", table(["Tuần", "Nội dung", "Giờ", "Trạng thái"], [
+      ["1", `${lines(90, 60)}<span class="small">${mk(4)}Đính kèm: tuan1.pdf</span>`, "18", badge("Đã chấp nhận", 1)],
+      ["2", `${lines(84)}<span class="small">GV: Bổ sung chi tiết công việc</span> ${btn("Sửa & gửi lại", "sm", 5)}`, "18", badge("Trả lại")],
+      ["3", lines(76, 40), "18", badge("Chờ duyệt")]], 3))}`),
+},
+{
+  id: "S06", name: "Trợ lý AI chính sách", role: "any", route: "#/assistant",
+  purpose: "Hỏi về quy định; câu trả lời chỉ dựa trên văn bản đang hiệu lực, luôn kèm nguồn, không bao giờ duyệt thay GV.",
+  states: "Đang xử lý: hiện từng bước (Kiểm tra câu hỏi → Tra cứu văn bản → Soạn câu trả lời → Kiểm chứng trích dẫn) · Không có căn cứ → “Tôi không tìm thấy quy định…” · Dữ liệu SV khác / injection → từ chối.",
+  notes: [
+    [1, "Tuyên bố phạm vi: chỉ giải thích quy định, không duyệt hay cam kết.", "FR-5.6"],
+    [2, "Trả lời dạng streaming: tiến độ từng bước, rồi văn bản đã kiểm chứng.", "FR-5.9"],
+    [3, "Mỗi câu kèm [n]; khung Nguồn mở ra đoạn trích Điều/Khoản.", "FR-5.3 · FR-5.4"],
+    [4, "Khi model lỗi hoặc quá thời gian: trả trích dẫn nguyên văn, có nhãn riêng.", "FR-5.11 · FR-5.13"],
+    [5, "Câu hỏi xin quyết định → lưu ý + liên kết tới mục Mốc để tạo yêu cầu gia hạn.", "FR-5.6 · FR-8.1"],
+    [6, "Gợi ý câu hỏi nhanh và ô nhập câu hỏi.", "—"],
+  ],
+  d: () => shell("student", 2, `
+    ${ph("Trợ lý chính sách thực tập", "Trợ lý chỉ trả lời theo văn bản quy định đang có hiệu lực và luôn dẫn nguồn. Trợ lý không duyệt hay cam kết kết quả.", "", 1)}
+    <div class="card"><div class="chat">
+      <div class="msg msg--u">Thời gian thực tập tối thiểu là bao nhiêu tuần?</div>
+      <div class="msg">${mk(3)}<span>Thời gian thực tập tối thiểu là 8 tuần [1].</span>
+        <div class="src"><b>Nguồn</b><span>[1] QĐ-TT/2026 · Chương II / Điều 5 / Khoản 2 · hiệu lực 01/09/2026</span></div></div>
+      <div class="msg msg--u">Em có được gia hạn nộp báo cáo giữa kỳ không?</div>
+      <div class="msg">${mk(4)}<span class="small muted">Trích nguyên văn quy định (không diễn giải).</span><span>Theo QĐ-TT/2026 · Điều 10 / Khoản 1: Sinh viên có lý do chính đáng… được đề nghị gia hạn [1].</span>
+        <span class="small">${mk(5)}Lưu ý: trợ lý chỉ giải thích quy định… <u>→ Mở mục Mốc để tạo yêu cầu gia hạn</u></span>
+        <div class="src"><b>Nguồn</b><span>[1] QĐ-TT/2026 · Chương III / Điều 10 / Khoản 1</span></div></div>
+      <div class="msg">${mk(2)}<span class="small muted">Tra cứu văn bản đang hiệu lực…</span></div>
+    </div></div>
+    <div class="row">${mk(6)}<span class="chip">Thời gian thực tập tối thiểu là bao nhiêu tuần?</span><span class="chip">Khi nào phải nộp đề cương?</span><span class="chip hide-m">Mỗi tuần cần bao nhiêu giờ?</span></div>
+    <div class="row"><span class="inp ph-only" style="flex:1">Hỏi về thủ tục, thời hạn hay quy định thực tập…</span>${btn("Hỏi", "p")}</div>`),
+},
+{
+  id: "S07", name: "Văn bản quy định", role: "any", route: "#/policies",
+  purpose: "Nguồn duy nhất để trợ lý AI trả lời. Mọi người xem; chỉ QTV (hoặc GV điều phối) tải văn bản mới.",
+  states: "Văn bản thiếu dòng “Điều N.” → lỗi khi tải · Không có quyền → không thấy form tải.",
+  notes: [
+    [1, "Bảng văn bản: số hiệu, tên, hiệu lực, trạng thái (Đang hiệu lực / Đã bị thay thế), số đoạn.", "FR-6.3"],
+    [2, "Bấm số hiệu để xem các đoạn đã tách theo Chương/Điều/Khoản.", "FR-6.4"],
+    [3, "Form tải văn bản mới (kèm “thay thế văn bản”) — chỉ hiện cho người có quyền.", "FR-6.1"],
+    [4, "Lập chỉ mục lại embedding chưa có nút trên giao diện — chỉ qua API POST /policies/reindex (QTV).", "FR-6.2 · FR-6.5"],
+  ],
+  d: () => shell("admin", 2, `
+    ${ph("Văn bản quy định", "Nguồn duy nhất để trợ lý AI trả lời và dẫn căn cứ.", "", 4)}
+    ${card("Danh sách văn bản", table(["Số hiệu", "Tên văn bản", "Hiệu lực", "Trạng thái", "Số đoạn"], [
+      ["<u>QĐ-TT/2026</u>", "Quy định về thực tập doanh nghiệp (sửa đổi 2026)", "01/09/2026", badge("Đang hiệu lực", 1), "22"],
+      ["<u>HD-BM/2026</u>", "Hướng dẫn bảo mật thông tin trong thực tập", "15/08/2026", badge("Đang hiệu lực", 1), "7"],
+      ["<u>QĐ-TT/2025</u>", "Quy định về thực tập doanh nghiệp (bản 2025)", "01/09/2025 – 01/09/2026", badge("Đã bị thay thế"), "4"]], 1)
+      + `<div class="panel">${mk(2)}<b>QĐ-TT/2026 — các đoạn</b><span class="small">▸ Chương II / Điều 5 / Khoản 1</span><span class="small">▸ Chương II / Điều 5 / Khoản 2</span><span class="small">▸ Chương II / Điều 6 / Khoản 1 …</span></div>`)}
+    ${card("Tải văn bản mới", `<div class="grid2">${field("Số hiệu", "", {})}${field("Tên văn bản", "", {})}${field("Hiệu lực từ", "dd/mm/yyyy", { ph: 1 })}${field("Thay thế văn bản (số hiệu, nếu có)", "", {})}${field("File (PDF/DOCX/MD/TXT)", "Chọn tệp…", { ph: 1, span: 1 })}</div><div class="btns">${btn("Tải lên & lập chỉ mục", "p")}</div>`, "", 3)}`),
+},
+{
+  id: "S08", name: "Giảng viên — hàng chờ duyệt", role: "lecturer", route: "#/",
+  purpose: "Mọi việc cần GV quyết định ở một chỗ: hồ sơ, đề cương, yêu cầu gia hạn. AI chỉ gợi ý.",
+  states: "Không còn mục → “Không có mục nào chờ duyệt.” · Hồ sơ đã bị SV sửa khi đang mở → báo tải lại.",
+  notes: [
+    [1, "Số mục đang chờ.", "FR-3.1"],
+    [2, "Hồ sơ đăng ký: các trường, trường do AI điền có nhãn.", "FR-2.6 · FR-3.1"],
+    [3, "Đề cương + hộp Gợi ý AI: tóm tắt, chuẩn đầu ra chưa thấy nhắc tới.", "FR-3.2"],
+    [4, "Gia hạn: hạn cũ → hạn mới, lý do, minh chứng, điều khoản liên quan.", "FR-8.2"],
+    [5, "Ô nhận xét bắt buộc khi Yêu cầu chỉnh sửa / Từ chối (gia hạn: luôn bắt buộc).", "FR-3.5 · FR-8.3"],
+    [6, "Chỉ GV phụ trách bấm được; AI không bao giờ quyết định.", "FR-3.3 · FR-3.4"],
+  ],
+  d: () => shell("lecturer", 0, `
+    ${ph("Hàng chờ phê duyệt", "3 mục đang chờ bạn xử lý", "", 1)}
+    <div class="card"><div class="card__h"><div class="row"><span class="x x--av"></span><div><b>Phạm Ngọc Dũng</b><div class="small">Đề cương thực tập · phiên bản 1</div></div></div>${badge("Chờ duyệt")}</div>
+      ${lines(97, 92, 60)}
+      ${aibox(`${lines(95, 88)}<b class="small">Chuẩn đầu ra chưa thấy nhắc tới:</b><span class="small">• CLO2 — Làm việc nhóm và giao tiếp chuyên nghiệp</span><span class="small">• CLO3 — Tuân thủ quy trình, quy định và đạo đức nghề nghiệp</span>`, 3)}
+      ${field("Nhận xét (bắt buộc khi yêu cầu sửa hoặc từ chối)", "", { ta: 1, n: 5 })}
+      <div class="btns">${btn("Duyệt", "p", 6)}${btn("Yêu cầu chỉnh sửa")}${btn("Từ chối", "d")}</div></div>
+    ${card("Hồ sơ đăng ký — Nguyễn Văn An", `<div class="kv"><div><span>Tên doanh nghiệp <i class="tag">AI điền</i></span><b>Công ty Cổ phần Dữ liệu Phương Nam</b></div><div><span>Vị trí</span><b>Thực tập sinh phân tích dữ liệu</b></div><div><span>Thời gian</span><b>01/12/2026 – 27/02/2027</b></div></div>`, badge("Chờ duyệt"), 2)}
+    ${card("Xin gia hạn — Hoàng Gia Giang · Nộp giấy xác nhận tiếp nhận", `<span>31/10/2026 → <b>18/11/2026</b></span>${lines(80)}<span class="small">Minh chứng kèm theo: <u>mở file</u></span>${aibox(`<span class="small">Xin dời hạn +18 ngày… · ▸ QĐ-TT/2026 · Điều 10 / Khoản 1</span>`)}`, "", 4)}`),
+},
+{
+  id: "S09", name: "Giảng viên — danh sách sinh viên", role: "lecturer", route: "#/students",
+  purpose: "Tổng hợp mọi sinh viên được phân công: lọc, sắp xếp, tìm kiếm, xuất file. Bấm tên để mở chi tiết (S10).",
+  states: "Không có kết quả → “Không có hồ sơ phù hợp.” · Mobile: bảng cuộn ngang trong khung.",
+  notes: [
+    [1, "Xuất CSV / Excel đúng các dòng đang lọc, trong phạm vi quyền.", "FR-9.3"],
+    [2, "Bộ lọc: tìm (tên, mã SV, DN), trạng thái, ngành, mức rủi ro.", "FR-9.2"],
+    [3, "Cột: SV, DN, trạng thái, % mốc, mốc kế tiếp, cảnh báo; bấm tiêu đề để sắp xếp.", "FR-9.1 · FR-9.2"],
+    [4, "Thanh tiến độ % mốc đã chấp nhận.", "FR-9.1"],
+    [5, "Phân trang.", "FR-9.2"],
+  ],
+  d: () => shell("lecturer", 1, `
+    ${ph("Sinh viên phụ trách", "", `<div class="btns">${btn("Xuất CSV", "sm", 1)}${btn("Xuất Excel", "sm")}</div>`)}
+    <div class="card"><div class="grid2">${field("Tìm (tên, mã SV, doanh nghiệp)", "", { n: 2 })}${field("Trạng thái", "Tất cả", { sel: 1 })}${field("Ngành", "Tất cả", { sel: 1 })}${field("Mức rủi ro", "Có cảnh báo", { sel: 1 })}</div>
+      <span class="small">10 hồ sơ · trang 1/1</span>
+      ${table(["Sinh viên ▲", "Doanh nghiệp", "Trạng thái", "% mốc", "Mốc kế tiếp", "Cảnh báo ▼"], [
+        ["<u><b>Hoàng Gia Giang</b></u><div class='small'>SV2026004 · QTKD</div>", "Công ty TNHH Thương mại Hải Âu", badge("Đang thực tập"), `<span class="prog" style="--p:20%"></span>`, "Nộp giấy xác nhận…<div class='small'>18/11/2026</div>", badge("Cảnh báo ×2")],
+        ["<u><b>Nguyễn Minh Bình</b></u><div class='small'>SV2026007 · CNTT</div>", "Công ty Cổ phần Dữ liệu Phương Nam", badge("Đang thực tập"), `<span class="prog" style="--p:60%"></span>`, "Báo cáo giữa kỳ<div class='small'>20/11/2026</div>", badge("Thông tin ×1")],
+        ["<u><b>Trần Thị Chi</b></u><div class='small'>SV2026010 · CNTT</div>", "—", badge("Chờ duyệt"), `<span class="prog" style="--p:0%"></span>`, "—", "—"]], 3)}
+      <div class="row">${mk(4)}${mk(5)}${btn("← Trước", "sm")}${btn("Sau →", "sm")}</div></div>`),
+},
+{
+  id: "S10", name: "Giảng viên — chi tiết hồ sơ", role: "lecturer", route: "#/internship/:id",
+  purpose: "Xem và duyệt từng mốc, nhật ký của một sinh viên; xem lịch sử thao tác không sửa được.",
+  states: "QTV mở màn này: chỉ xem, không có nút duyệt · Trả lại không có nhận xét → báo lỗi.",
+  notes: [
+    [1, "Đầu trang: SV, trạng thái, DN, vị trí, thời gian; liên kết quay lại danh sách.", "—"],
+    [2, "Mốc đã nộp: Chấp nhận / Trả lại (bắt buộc nhận xét khi trả lại).", "FR-4.6"],
+    [3, "Nhật ký: chấp nhận / trả lại từng tuần.", "FR-4.8"],
+    [4, "Lịch sử thao tác (audit): thời điểm, người, đối tượng, hành động, lý do.", "FR-10.1 · FR-8.5"],
+    [5, "Nút duyệt chỉ hiện với GV phụ trách.", "FR-3.3"],
+  ],
+  d: () => shell("lecturer", 1, `
+    ${ph("Hoàng Gia Giang", "Công ty TNHH Thương mại Hải Âu · Thực tập sinh phát triển phần mềm · 25/10/2026 – 27/12/2026", `<span class="row">${badge("Đang thực tập")}<u class="small">← Danh sách</u></span>`, 1)}
+    ${card("Các mốc", `<ol class="tl"><li><span class="dot cur">1</span><div><span class="t">Nộp giấy xác nhận tiếp nhận</span><div class="small">Hạn 18/11/2026 · Minh chứng: <u>xac-nhan.pdf</u></div>
+      <div class="row" style="margin-top:.5em"><span class="inp ph-only" style="flex:1">Nhận xét (bắt buộc khi trả lại)</span>${btn("Chấp nhận", "p", 2)}${btn("Trả lại", "d")}</div></div>${badge("Đã nộp")}</li>
+      <li class="todo"><span class="dot">2</span><div><span class="t">Đề cương thực tập được duyệt</span><div class="small">Hạn 08/11/2026</div></div>${badge("Quá hạn")}</li></ol>`, "", 5)}
+    ${card("Nhật ký (68 giờ)", table(["Tuần", "Nội dung", "Giờ", "Trạng thái"], [["1", `${lines(80)}<div class="row" style="margin-top:.4em"><span class="inp ph-only" style="flex:1">Nhận xét</span>${btn("Chấp nhận", "sm")}${btn("Trả lại", "sm")}</div>`, "34", badge("Chờ duyệt")]], 3))}
+    ${card("Lịch sử thao tác (audit)", table(["Thời điểm", "Người", "Đối tượng", "Hành động", "Lý do"], [["14/11 09:12", "Hoàng Gia Giang", "extension #1", "created", "—"], ["13/11 07:00", "system", "milestone #6", "status:pending→overdue", "—"]], 4))}`),
+},
+{
+  id: "S11", name: "Giảng viên — cảnh báo", role: "lecturer", route: "#/flags",
+  purpose: "Xử lý cảnh báo do tác tử giám sát sinh ra; tác tử không đổi trạng thái hồ sơ.",
+  states: "Không có cảnh báo → “Không có cảnh báo đang mở.” · Bác bỏ không ghi chú → báo lỗi.",
+  notes: [
+    [1, "Sắp theo mức độ: Nghiêm trọng → Cảnh báo → Thông tin.", "FR-7.3"],
+    [2, "Tên SV dẫn tới chi tiết hồ sơ (S10).", "—"],
+    [3, "Ghi nhận · Đã xử lý · Bác bỏ (bắt buộc ghi chú khi bác bỏ).", "FR-7.7"],
+    [4, "Ghi chú tác tử chỉ cảnh báo, không tự đổi trạng thái hồ sơ.", "FR-7.6"],
+  ],
+  d: () => shell("lecturer", 2, `
+    ${ph("Sinh viên có cảnh báo", "Cảnh báo do tác tử giám sát sinh ra theo luật; tác tử không thay đổi trạng thái hồ sơ.", "", 4)}
+    ${[["Cảnh báo", "Hoàng Gia Giang", "Mốc ‘Nộp giấy xác nhận tiếp nhận’ đã quá hạn 14 ngày (31/10/2026)", "Mở"], ["Cảnh báo", "Phạm Ngọc Dũng", "Tổng giờ nhật ký 72h thấp hơn kỳ vọng 102.4h sau 4 tuần", "Đã ghi nhận"], ["Thông tin", "Nguyễn Minh Bình", "Mốc ‘Nộp báo cáo giữa kỳ’ đến hạn sau 2 ngày", "Mở"]].map((f, i) =>
+      `<div class="card"><div class="card__h"><span class="row">${i === 0 ? mk(1) : ""}${badge(f[0], i < 2)}<u><b>${i === 0 ? mk(2) : ""}${f[1]}</b></u>${badge(f[3])}</span><span class="small">14/11/2026</span></div><span>${f[2]}</span>
+       <div class="row"><span class="inp ph-only" style="flex:1">Ghi chú (bắt buộc khi bác bỏ)</span>${i === 0 ? mk(3) : ""}${btn("Ghi nhận", "sm")}${btn("Đã xử lý", "p")}${btn("Bác bỏ", "d")}</div></div>`).join("")}`),
+},
+{
+  id: "S12", name: "Quản trị viên — trang quản trị", role: "admin", route: "#/",
+  purpose: "Cấu hình đợt: mẫu mốc, phân công giảng viên, tài khoản; chạy giám sát thủ công.",
+  states: "Tắt vai trò QTV (ENABLE_ADMIN_ROLE=false) → không đăng nhập được, /admin trả 404 · Lưu mẫu mốc trùng mã → lỗi.",
+  notes: [
+    [1, "Chạy giám sát ngay: báo số cảnh báo mới, số mốc quá hạn.", "FR-7.1"],
+    [2, "Bảng mẫu mốc sửa trực tiếp; áp dụng cho hồ sơ duyệt sau khi lưu.", "FR-4.1"],
+    [3, "Phân công GV cho từng SV; hồ sơ đang mở chuyển theo GV mới.", "FR-10.3"],
+    [4, "Tạo tài khoản SV/GV.", "FR-10.3"],
+    [5, "Vai trò tùy chọn — có thể tắt.", "FR-1.6"],
+  ],
+  d: () => shell("admin", 0, `
+    ${ph("Quản trị", "Đợt: Thực tập doanh nghiệp HK1 2026–2027 (TT-2026-HK1)", btn("Chạy giám sát ngay", "", 1), 5)}
+    ${card("Mẫu mốc của đợt", `<span class="small">Thay đổi chỉ áp dụng cho hồ sơ được duyệt sau thời điểm lưu; mốc đã sinh giữ nguyên.</span>
+      ${table(["Mã", "Tên mốc", "Mốc tính hạn", "Lệch (ngày)", "Minh chứng yêu cầu", "Căn cứ", ""], [
+        ["<span class='inp'>tiep_nhan</span>", "<span class='inp'>Nộp giấy xác nhận tiếp nhận…</span>", "<span class='inp sel'>Ngày bắt đầu</span>", "<span class='inp'>7</span>", "<span class='inp'>acceptance_letter</span>", "<span class='inp'>QĐ-TT/2026 · Điều 7…</span>", "✕"],
+        ["<span class='inp'>giua_ky</span>", "<span class='inp'>Nộp báo cáo giữa kỳ</span>", "<span class='inp sel'>Giữa kỳ</span>", "<span class='inp'>0</span>", "<span class='inp'>midterm_report</span>", "<span class='inp'>QĐ-TT/2026 · Điều 7…</span>", "✕"]], 2)}
+      <div class="btns">${btn("Thêm mốc")}${btn("Lưu mẫu mốc", "p")}</div>`)}
+    <div class="grid2">
+      ${card("Phân công giảng viên", table(["Sinh viên", "Mã SV", "GV phụ trách"], [["Lê Thị Chi", "SV2026003", "<span class='inp sel'>TS. Đỗ Quốc Huy</span>"], ["Hoàng Gia Giang", "SV2026004", "<span class='inp sel'>TS. Lê Minh Tâm</span>"]]), "", 3)}
+      ${card("Thêm tài khoản", `<div class="grid2">${field("Tên đăng nhập", "")}${field("Mật khẩu", "")}${field("Họ tên", "")}${field("Vai trò", "Sinh viên", { sel: 1 })}</div><div class="btns">${btn("Tạo tài khoản", "p")}</div>`, "", 4)}
+    </div>`),
+},
+{
+  id: "S13", name: "Quản trị viên — danh sách toàn khóa", role: "admin", route: "#/students",
+  purpose: "Cùng bảng tổng hợp như S09 nhưng cho toàn khóa, thêm lọc và cột giảng viên; chỉ xem, không duyệt.",
+  states: "Giống S09.",
+  notes: [
+    [1, "Thêm bộ lọc Giảng viên.", "FR-9.2"],
+    [2, "Thêm cột GV phụ trách.", "FR-9.1"],
+    [3, "Xuất file toàn khóa, có ghi audit “exported”.", "FR-9.3"],
+    [4, "Mở chi tiết ở chế độ chỉ xem (không có nút duyệt).", "FR-3.3"],
+  ],
+  d: () => shell("admin", 1, `
+    ${ph("Danh sách thực tập toàn khóa", "", `<div class="btns">${btn("Xuất CSV", "sm", 3)}${btn("Xuất Excel", "sm")}</div>`)}
+    <div class="card"><div class="grid2">${field("Tìm (tên, mã SV, doanh nghiệp)", "")}${field("Trạng thái", "Tất cả", { sel: 1 })}${field("Ngành", "Tất cả", { sel: 1 })}${field("Mức rủi ro", "Tất cả", { sel: 1 })}${field("Giảng viên", "Tất cả", { sel: 1, n: 1 })}</div>
+      <span class="small">5 hồ sơ · trang 1/1</span>
+      ${table(["Sinh viên", "Doanh nghiệp", "Trạng thái", "% mốc", "Cảnh báo", `${mk(2)}GV`], [
+        [`<u><b>${mk(4)}Hoàng Gia Giang</b></u>`, "Công ty TNHH Thương mại Hải Âu", badge("Đang thực tập"), `<span class="prog" style="--p:20%"></span>`, badge("Cảnh báo ×2"), "TS. Lê Minh Tâm"],
+        ["<u><b>Phạm Ngọc Dũng</b></u>", "Công ty TNHH Giải pháp Phần mềm Sao Mai", badge("Đang thực tập"), `<span class="prog" style="--p:20%"></span>`, badge("Cảnh báo ×1"), "TS. Đỗ Quốc Huy"],
+        ["<u><b>Nguyễn Thu Hà</b></u>", "Công ty Cổ phần Dữ liệu Phương Nam", badge("Chờ duyệt"), `<span class="prog" style="--p:0%"></span>`, "—", "ThS. Phạm Thu Hằng"]])}</div>`),
+},
+{
+  id: "S14", name: "Thông báo (lớp phủ)", role: "any", route: "mọi màn sau đăng nhập",
+  purpose: "Chuông góc trên phải: thông báo duyệt, cảnh báo, nhắc việc; mở danh sách là đánh dấu đã đọc.",
+  states: "Không có thông báo → “Chưa có thông báo.”",
+  notes: [
+    [1, "Chuông kèm số chưa đọc.", "FR-10.2"],
+    [2, "Danh sách mới nhất trước; mục chưa đọc in đậm; mở = đánh dấu đã đọc.", "FR-10.2"],
+    [3, "Mỗi mục dẫn tới màn liên quan (hàng chờ, cảnh báo, hồ sơ).", "FR-7.5"],
+  ],
+  d: () => shell("lecturer", 0, `${ph("Hàng chờ phê duyệt", "3 mục đang chờ bạn xử lý")}${card("Phạm Ngọc Dũng — Đề cương", lines(96, 90, 55))}${card("Nguyễn Văn An — Hồ sơ đăng ký", lines(88, 70))}`,
+    { unread: 3, bellMk: 1, after: `<div class="scrim"></div><div class="overlay">${mk(2)}
+      <div class="it unread"><b>${mk(3)}Hồ sơ thực tập mới chờ duyệt: Nguyễn Văn An</b><div class="small muted">14/11/2026</div></div>
+      <div class="it unread"><b>Cảnh báo SV Hoàng Gia Giang: Mốc quá hạn 14 ngày</b><div class="small muted">14/11/2026</div></div>
+      <div class="it unread"><b>Hoàng Gia Giang xin gia hạn mốc ‘Nộp giấy xác nhận…’</b><div class="small muted">13/11/2026</div></div>
+      <div class="it"><span>Đề cương mới chờ duyệt: Phạm Ngọc Dũng</span><div class="small muted">12/11/2026</div></div></div>` }),
+},
+];
+
+/* ===== Sơ đồ (SVG vẽ tay theo toạ độ) ===== */
+function box(x, y, w, h, label, sub, opt = {}) {
+  return `<g><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="5" fill="${opt.fill || "#fff"}" stroke="#1c1c1a" stroke-width="${opt.bold ? 2 : 1.2}" ${opt.dash ? 'stroke-dasharray="5 4"' : ""}/>
+    <text x="${x + w / 2}" y="${y + (sub ? h / 2 - 3 : h / 2 + 4)}" text-anchor="middle" font-size="11.5" font-weight="700" fill="#1c1c1a">${label}</text>
+    ${sub ? `<text x="${x + w / 2}" y="${y + h / 2 + 12}" text-anchor="middle" font-size="9.5" fill="#55554f">${sub}</text>` : ""}</g>`;
+}
+const arrow = (d, red) => `<path d="${d}" fill="none" stroke="${red ? "#c4351d" : "#1c1c1a"}" stroke-width="1.3" marker-end="url(#${red ? "ar" : "ak"})"/>`;
+const lbl = (x, y, t, red, anchor = "middle") => `<text x="${x}" y="${y}" text-anchor="${anchor}" font-size="9.5" fill="${red ? "#c4351d" : "#55554f"}">${t}</text>`;
+const DEFS = `<defs><marker id="ak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#1c1c1a"/></marker>
+  <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#c4351d"/></marker></defs>`;
+
+function sitemapSVG() {
+  const col = (x, title, items, ids) => `${box(x, 92, 200, 34, title, "", { fill: "#ececea", bold: 1 })}` +
+    items.map((t, i) => box(x + 14, 146 + i * 46, 172, 34, t, ids[i])).join("") +
+    items.map((_, i) => arrow(`M${x + 6} ${126} V${163 + i * 46} H${x + 14}`)).join("");
+  return `<svg viewBox="0 0 1040 400" role="img" aria-label="Sơ đồ màn hình theo vai trò">${DEFS}
+    ${box(420, 14, 200, 44, "Đăng nhập", "S01 · mật khẩu hoặc SSO", { bold: 1 })}
+    ${arrow("M470 58 V75 H130 V92")}${arrow("M520 58 V92")}${arrow("M570 58 V75 H910 V92")}
+    ${lbl(300, 70, "vai trò sinh viên")}${lbl(560, 82, "giảng viên", false, "start")}${lbl(740, 70, "quản trị viên (tùy chọn)")}
+    ${col(30, "Sinh viên", ["Hồ sơ của tôi", "Nhật ký", "Trợ lý AI", "Quy định"], ["S02 · S03 · S04", "S05", "S06", "S07"])}
+    ${col(420, "Giảng viên", ["Hàng chờ duyệt", "Sinh viên", "Chi tiết hồ sơ", "Cảnh báo", "Trợ lý AI · Quy định"], ["S08", "S09", "S10 (từ S09, S11)", "S11", "S06 · S07"])}
+    ${col(810, "Quản trị viên", ["Quản trị", "Danh sách", "Chi tiết (chỉ xem)", "Quy định · Trợ lý AI"], ["S12", "S13", "S10", "S07 · S06"])}
+    ${arrow("M606 255 V280 H620", true)}${lbl(640, 252, "bấm tên SV", true, "start")}
+    ${box(420, 386 - 30, 200, 30, "Thông báo (chuông)", "", { dash: 1 })}${lbl(630, 375, "S14 · có trên mọi màn sau đăng nhập", false, "start")}
+  </svg>`;
+}
+
+function swimSVG() {
+  const lanes = [["Sinh viên", 40], ["Hệ thống / AI", 130], ["Giảng viên", 220]];
+  const L = lanes.map(([t, y]) => `<rect x="0" y="${y}" width="1040" height="86" fill="${y === 130 ? "#f6f6f4" : "#fff"}" stroke="#cfcfca"/><text x="12" y="${y + 47}" font-size="11" font-weight="700" fill="#1c1c1a">${t}</text>`).join("");
+  return `<svg viewBox="0 0 1040 320" role="img" aria-label="Luồng chính đăng ký đến hoàn thành">${DEFS}${L}
+    ${box(110, 58, 120, 50, "Khai báo hồ sơ", "S03")}
+    ${box(110, 148, 120, 50, "AI trích xuất", "gợi ý + độ tin cậy", { dash: 1 })}
+    ${box(260, 148, 120, 50, "Kiểm tra quy chế", "lỗi kèm căn cứ")}
+    ${box(410, 238, 120, 50, "Duyệt hồ sơ", "S08 · HITL", { bold: 1 })}
+    ${box(560, 148, 120, 50, "Sinh mốc", "từ mẫu của đợt")}
+    ${box(560, 58, 120, 50, "Nộp mốc, nhật ký", "S04 · S05")}
+    ${box(710, 148, 120, 50, "Giám sát", "nhắc việc, cảnh báo", { dash: 1 })}
+    ${box(710, 58, 120, 50, "Xin gia hạn", "S04")}
+    ${box(860, 238, 140, 50, "Duyệt mốc / gia hạn", "S08 · S10 · HITL", { bold: 1 })}
+    ${arrow("M170 108 V148")}${arrow("M230 173 H260")}${arrow("M320 198 V263 H410")}${arrow("M530 263 H545 V173 H560")}
+    ${arrow("M620 148 V108")}${arrow("M680 83 H710")}${arrow("M680 173 H710", true)}${arrow("M830 83 H930 V238")}${arrow("M770 198 V263 H860", true)}
+    ${lbl(344, 236, "nộp")}${lbl(552, 236, "duyệt")}${lbl(700, 140, "sự kiện", true, "end")}${lbl(860, 226, "cảnh báo GV", true, "end")}
+    ${lbl(1030, 314, "Khung đậm = con người quyết định (HITL) · nét đứt = AI / tác tử hệ thống · mũi tên đỏ = cảnh báo, nhắc việc", false, "end")}
+  </svg>`;
+}
+
+/* ===== Dựng các tờ ===== */
+const TOTAL = SCREENS.length + 2;
+const foot = (n, title) => `<div class="foot"><span>${META.project} · ${title}</span><span>Tờ ${n}/${TOTAL} · v${META.version} · ${META.date}</span></div>`;
+
+function coverSheet() {
+  const legend = [
+    [`<span class="btn btn--p btn--sm" style="font-size:7.5px">Nút chính</span>`, "Nút hành động chính (tô đậm); nút viền = phụ; viền nét đứt = hành động huỷ bỏ / từ chối"],
+    [`<span class="inp" style="font-size:7.5px;width:46px;min-height:16px"></span>`, "Ô nhập; chữ xám nhạt = gợi ý; ▾ = danh sách chọn"],
+    [`<span class="f ai" style="font-size:7.5px;width:46px"><span class="inp" style="min-height:16px"></span></span>`, "Ô do AI điền (viền đứt + gạch chéo + nhãn “AI điền”)"],
+    [`<span class="aibox" style="font-size:7px;width:46px;height:20px;padding:2px"></span>`, "Nội dung do AI sinh — luôn chỉ là gợi ý"],
+    [`<span class="badge" style="font-size:7.5px">Nhãn</span>`, "Nhãn trạng thái (chữ ghi rõ trạng thái; nền xám = đã xong)"],
+    [`<span style="width:46px;display:flex;flex-direction:column;gap:3px">${bar(100)}${bar(70)}</span>`, "Đoạn văn bản dài (nội dung thật thay đổi theo dữ liệu)"],
+    [`<span class="x x--av" style="font-size:7.5px"></span>`, "Ảnh / avatar / logo (ô có dấu X)"],
+    [`<span class="mk" style="font-size:9px">1</span>`, "Chú thích thiết kế — số khớp danh sách bên phải mỗi tờ"],
+  ].map(([sw, t]) => `<div><span class="sw">${sw}</span><span>${t}</span></div>`).join("");
+  const rows = SCREENS.map((s) => `<tr><td><a href="#${s.id}">${s.id}</a></td><td>${s.name}</td><td>${ROLE[s.role]}</td><td style="font-family:var(--f-mono);font-size:9.5px">${s.route}</td><td class="fr">${[...new Set(s.notes.map((n) => n[2]).join(" · ").split(" · ").filter((x) => x !== "—"))].slice(0, 4).join(" · ")}</td></tr>`).join("");
+  return `<section class="sheet" id="C00" data-title="Bìa">
+    <div class="tb"><div><div class="tb__id">VIN-15</div><div class="tb__name">Wireframe Cổng thực tập</div></div>
+      <dl class="tb__meta"><dt>Phiên bản</dt><dt>Ngày</dt><dt>Độ chi tiết</dt><dd>${META.version}</dd><dd>${META.date}</dd><dd>${META.fidelity}</dd></dl></div>
+    <div class="cover">
+      <div class="stack">
+        <h1>Hệ thống hỗ trợ thực tập bằng AI</h1>
+        <p>Bộ wireframe low-fidelity cho cổng thực tập: 14 màn của ba vai trò (Sinh viên, Giảng viên và Quản trị viên tùy chọn), mỗi màn có bản desktop (1440 px) và mobile (390 px). Bố cục vẽ lại từ frontend React đang chạy; chú thích đỏ trỏ về mã yêu cầu trong PRD.</p>
+        <dl class="facts"><dt>Dự án</dt><dd>VIN-15 · Giáo dục Đại học &amp; Quản trị Học thuật</dd><dt>Nguồn</dt><dd>${META.source}</dd><dt>Tài liệu đi kèm</dt><dd>PRD.md · .kiro/specs/internship-ai-assistant/</dd><dt>Nguyên tắc</dt><dd>AI chỉ gợi ý; mọi phê duyệt do giảng viên (HITL)</dd></dl>
+        <h2>Ký hiệu</h2><div class="legend">${legend}</div>
+        <div class="howto"><b>Xuất PDF hoặc từng màn</b><ol><li>Mở file <code>docs/wireframe/export/vin15-wireframe-print.html</code> trong Chrome/Edge.</li><li>Ctrl + P → Lưu thành PDF · Khổ A4 · Hướng ngang · Lề mặc định · tắt “Đầu trang và chân trang” · bật “Đồ họa nền”.</li><li>Một màn: thêm <code>#S04</code> (mã màn) vào cuối địa chỉ rồi in như trên. Bản PDF và ảnh PNG từng màn đã có sẵn trong <code>docs/wireframe/export/</code>.</li></ol></div>
+      </div>
+      <div class="stack"><h2>Danh sách màn</h2><div class="index-wrap"><table class="index"><tr><th>Mã</th><th>Màn</th><th>Vai trò</th><th>Route</th><th>Yêu cầu chính</th></tr>${rows}</table></div></div>
+    </div>${foot(1, "Bìa")}</section>`;
+}
+
+function flowSheet() {
+  return `<section class="sheet" id="F00" data-title="Sơ đồ">
+    <div class="tb"><div><div class="tb__id">F00</div><div class="tb__name">Sơ đồ màn hình và luồng chính</div><div class="tb__purpose">Trên: các màn theo vai trò (menu bên trái của từng vai trò). Dưới: luồng từ khai báo hồ sơ tới duyệt mốc, theo làn người và hệ thống.</div></div>
+      <dl class="tb__meta"><dt>Phiên bản</dt><dt>Ngày</dt><dt>Độ chi tiết</dt><dd>${META.version}</dd><dd>${META.date}</dd><dd>${META.fidelity}</dd></dl></div>
+    <div class="flow-wrap">${sitemapSVG()}${swimSVG()}</div>${foot(2, "Sơ đồ")}</section>`;
+}
+
+function screenSheet(s, i) {
+  const notes = s.notes.map(([n, t, fr]) => `<li><span class="n">${n}</span><span>${t} <span class="fr">${fr}</span></span></li>`).join("");
+  const url = s.route.startsWith("#") ? `https://cong-thuc-tap/${s.route.split(" ")[0]}` : "https://cong-thuc-tap/#/…";
+  return `<section class="sheet" id="${s.id}" data-title="${s.name}">
+    <div class="tb"><div><div class="row" style="gap:12px;align-items:baseline"><span class="tb__id">${s.id}</span><span class="tb__name">${s.name}</span></div><div class="tb__purpose">${s.purpose}</div></div>
+      <dl class="tb__meta"><dt>Vai trò</dt><dt>Route</dt><dt>Độ chi tiết</dt><dd>${ROLE[s.role]}</dd><dd class="mono">${s.route}</dd><dd>${META.fidelity}</dd>
+        <dt>Phiên bản</dt><dt>Ngày</dt><dt>Viewport</dt><dd>${META.version}</dd><dd>${META.date}</dd><dd>1440 · 390 px</dd></dl></div>
+    <div class="body">
+      <div class="col"><span class="col__label">Desktop · 1440 px</span><div class="dev dev--desk"><div class="chrome"><i></i><i></i><i></i><span class="url">${url}</span></div><div class="vp">${s.d()}</div></div></div>
+      <div class="col"><span class="col__label">Mobile · 390 px</span><div class="dev dev--phone"><div class="status"><span>9:41</span><span>●●● ▮</span></div><div class="vp">${s.d()}</div></div></div>
+      <div class="col notes"><span class="col__label">Chú thích</span><ol>${notes}</ol><div class="states"><b>Trạng thái khác:</b> ${s.states}</div></div>
+    </div>${foot(i + 3, `${s.id} ${s.name}`)}</section>`;
+}
+
+const host = document.getElementById("sheets");
+host.innerHTML = coverSheet() + flowSheet() + SCREENS.map(screenSheet).join("");
+
+/* Ẩn toggle trùng: desktop đặt toggle dưới menu, mobile đặt cạnh logo */
+const st = document.createElement("style");
+st.textContent = `.side .hide-d{display:none} @container (max-width:320px){ .side .hide-d{display:inline-flex} .side .hide-m-only{display:none} }`;
+document.head.appendChild(st);
+
+/* Co nội dung cho vừa khung (mọi kích thước tính bằng em nên co đều), rồi đánh dấu khung còn bị cắt.
+   Desktop co tới 58% để cả trang hiện đủ — chú thích không được trỏ vào phần bị khuất.
+   Mobile chỉ co tới 80%: màn điện thoại dài thì giữ chữ đọc được và ghi "trang còn tiếp khi cuộn". */
+const FIT = { "dev--desk": [8.6, 0.58], "dev--phone": [7.2, 0.8] };
+function markCuts() {
+  document.querySelectorAll(".dev").forEach((d) => {
+    const vp = d.querySelector(".vp");
+    const [base, min] = FIT[d.classList.contains("dev--desk") ? "dev--desk" : "dev--phone"];
+    vp.style.fontSize = base + "px";
+    for (let i = 0; i < 4 && vp.scrollHeight > vp.clientHeight + 2; i++) {
+      const cur = parseFloat(vp.style.fontSize);
+      const next = Math.max(base * min, cur * (vp.clientHeight / vp.scrollHeight) * 0.99);
+      if (next >= cur - 0.01) break;
+      vp.style.fontSize = next.toFixed(2) + "px";
+    }
+    d.classList.toggle("cut", vp.scrollHeight > vp.clientHeight + 4);
+  });
+}
+
+/* Mục lục + xem riêng một màn bằng #mã */
+const toc = document.getElementById("toc");
+const ids = ["all", ...[...document.querySelectorAll(".sheet")].map((s) => s.id)];
+toc.innerHTML = ids.map((id) => `<a href="#${id}" data-id="${id}">${id === "all" ? "Tất cả" : id}</a>`).join("");
+function applyHash() {
+  const id = (location.hash || "").slice(1);
+  const solo = id && id !== "all" && document.getElementById(id);
+  document.body.classList.toggle("solo", !!solo);
+  document.querySelectorAll(".sheet").forEach((s) => s.classList.toggle("show", s.id === id));
+  toc.querySelectorAll("a").forEach((a) => a.classList.toggle("on", a.dataset.id === (solo ? id : "all")));
+  requestAnimationFrame(markCuts);
+}
+window.addEventListener("hashchange", applyHash);
+window.addEventListener("resize", () => requestAnimationFrame(markCuts));
+window.addEventListener("beforeprint", markCuts);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => requestAnimationFrame(markCuts));
+applyHash();
+</script>
+<style>
+@page { size: A4 landscape; margin: 7mm; }
+@media print {
+  body { background: #fff; padding: 0; }
+  body::before, .toolbar { display: none !important; }
+  .sheet { width: 283mm; height: 196mm; max-width: none; aspect-ratio: auto; margin: 0; box-shadow: none; break-after: page; page-break-after: always; overflow: hidden; }
+  .sheet:last-child { break-after: auto; page-break-after: auto; }
+  .body { grid-template-columns: minmax(0, 1fr) 222px 236px !important; }
+  .tb { grid-template-columns: minmax(0, 1fr) auto !important; }
+  .cover { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr) !important; }
+  .dev { flex: 1 !important; }
+  .dev--desk, .dev--phone { min-height: 0 !important; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>

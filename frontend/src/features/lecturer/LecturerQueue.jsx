@@ -61,7 +61,7 @@ function InternshipCard({ i, reload }) {
 export function OutlineAi({ s }) {
   if (!s) return <p className="muted small">Không có gợi ý AI cho đề cương này.</p>;
   return (
-    <AiBox label={`${s.label} · chỉ để tham khảo`}>
+    <AiBox label={s.label}>
       <p>{s.summary}</p>
       {s.uncovered_outcomes.length ? (
         <>
@@ -92,7 +92,7 @@ function ExtensionCard({ e, reload }) {
       <p className="pre" style={{ margin: "16px 0" }}>{e.reason}</p>
       {e.evidence_id && <p className="small">Minh chứng kèm theo: <EvidenceLink id={e.evidence_id}>mở file</EvidenceLink></p>}
       {e.ai_summary && (
-        <AiBox label={`${e.ai_summary.label} · chỉ để tham khảo`}>
+        <AiBox label={e.ai_summary.label}>
           <p>{e.ai_summary.summary}</p>
           {e.ai_summary.related_clauses.map((c, idx) => (
             <details key={idx}><summary className="small">{c.label}</summary><p className="pre small">{c.text}</p></details>

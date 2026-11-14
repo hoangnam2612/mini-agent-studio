@@ -68,3 +68,12 @@ URL vẫn dạng `#/...` (HashRouter) nên callback SSO `#/sso/<token>` và `#/s
 - `Dockerfile` cần `frontend/package-lock.json` (đã có sau `npm install`); chưa build thử image.
 - `web/` cũ và `_legacy/` vẫn giữ làm phương án dự phòng; xoá sau khi xác nhận bản React chạy đúng.
 - Màn Trợ lý/Sinh viên/Giảng viên trong bản thiết kế là bản tĩnh với dữ liệu mẫu; màn Admin, Quy định, Danh sách SV, Chi tiết hồ sơ, Cảnh báo, Nhật ký dùng cùng bộ thành phần nhưng chưa có artboard riêng.
+
+## 7. Sửa sau khi merge (2026-11-14, chưa commit)
+
+- **CSP chặn font và script theme khi chạy qua HTTPS (Caddy).** CSP của `deploy/Caddyfile` chỉ cho style/script từ chính trang, nên stylesheet Lexend từ Google Fonts và đoạn `<script>` inline áp theme trong `index.html` đều bị chặn → giao diện dùng font dự phòng, người chọn theme tối thấy trang nháy sáng.
+  - CSP thêm `https://fonts.googleapis.com` (style) và `font-src https://fonts.gstatic.com`; vẫn không cho script inline.
+  - Script theme chuyển sang `frontend/public/theme-init.js`, nạp bằng `<script src>` trong `<head>`.
+  - Kiểm tra: `tests/ui/mobile-check.mjs` qua `https://localhost` — 11/11 màn không tràn ngang, không lỗi console (trước khi sửa: lỗi CSP trên mọi màn).
+- **Nhãn khung AI bị lặp** "chỉ để tham khảo" ở hàng chờ duyệt: backend đã trả nhãn đầy đủ, `LecturerQueue.jsx` không nối thêm hậu tố nữa.
+- **Chưa có kiểm thử chức năng tự động cho bản React.** `tests/ui/ui-smoke.mjs` (jsdom) chỉ chạy với bản JS cũ trong `web/` (cần `/app.js`).

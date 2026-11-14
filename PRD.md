@@ -1,12 +1,13 @@
 # VIN-15 AI Internship Support System — Product Requirements Document (PRD)
 
 > **Status:** Draft for review
-> **Version:** 0.5
+> **Version:** 0.6
 > **Date:** 2026-11-14
-> **Scope:** the internship portal served at `/` (`web/`) and the REST API at `/api/v1`, for two main roles (Student, Lecturer) and one optional role (Administrator)
-> **Basis:** read from the code in `mini-agent-studio` (working tree, not yet committed; git holds only the template's `Initial commit`) and from the Kiro spec in `.kiro/specs/internship-ai-assistant/` (version 2, reduced scope, with R7 brought back)
+> **Scope:** the internship portal served at `/` (React app in `frontend/`, built to `frontend/dist`) and the REST API at `/api/v1`, for two main roles (Student, Lecturer) and one optional role (Administrator)
+> **Basis:** read from the code on `main` at `c3e71ab` (PR #1 backend and PRD, PR #3 React frontend), plus three local fixes not yet committed (CSP for the React fonts and theme script, a duplicated AI label; see §13), and from the Kiro spec in `.kiro/specs/internship-ai-assistant/` (version 2, reduced scope, with R7 brought back)
 > **Problem statement:** VIN-15, Higher Education & Academic Administration track
-> **Earlier versions:** v0.1 (Vietnamese) and v0.2 are replaced by this document. The change log in section 15 lists what changed.
+> **Companion documents:** `BRIEF.md` (project brief) · `docs/wireframe/` (wireframes: 14 screens, desktop and mobile, PDF and PNG)
+> **Earlier versions:** v0.1 (Vietnamese, 2026-11-13) to v0.5 are replaced by this document. The change log in section 15 lists what changed.
 
 ## 1. Document control
 
@@ -99,7 +100,7 @@ If all three hold, lecturers get fewer repeated questions, fewer registrations c
 
 ## 4. User journey
 
-The interface is a plain-JS single-page app (`web/app.js`) with hash routing, served by FastAPI behind Caddy at `https://localhost`. The login page shows **Đăng nhập bằng tài khoản trường (SSO)** when OIDC is configured. Five wrong passwords in 15 minutes lock the account for 15 minutes.
+The interface is a React 18 single-page app built with Vite (`frontend/`), with hash routing (`react-router` HashRouter) so the SSO callback `#/sso/<token>` keeps working. FastAPI serves the build (`frontend/dist`) behind Caddy at `https://localhost`; the older plain-JS app in `web/` is only a fallback when no build exists. Layout: a sidebar per role (a top header on phones), the Lexend typeface, an Auto / Light / Dark switch, and on the student home a "next step" line above a numbered milestone path. Screen-by-screen wireframes are in `docs/wireframe/`. The login page shows **Đăng nhập bằng tài khoản trường (SSO)** when OIDC is configured. Five wrong passwords in 15 minutes lock the account for 15 minutes.
 
 **Student** (`#/`, `#/logs`, `#/assistant`, `#/policies`):
 
@@ -128,7 +129,7 @@ The interface is a plain-JS single-page app (`web/app.js`) with hash routing, se
 
 **Administrator** (optional): edit milestone templates, assign lecturers, create accounts, upload and reindex regulations, **Chạy giám sát ngay**, and **Danh sách**. The list is the same table across all lecturers, with a lecturer filter, read-only.
 
-A bell in the top bar shows the number of unread notifications. Opening it marks them all as read. On phones (390 px wide) the menu becomes one row that scrolls sideways, and no page scrolls horizontally.
+A bell in the top bar shows the number of unread notifications. Opening it marks them all as read. On phones (390 px wide) the sidebar becomes a header above the content, and no page scrolls horizontally.
 
 ## 5. Functional requirements
 
@@ -194,7 +195,7 @@ LangGraph pipeline: `guard → retrieve → synthesize → verify → finalize`.
 | FR-5.2 | Send only minimal context: role, program, cohort, record state, mode, next milestone; never name, student code, email or phone (R8.2). | P0 | | Built |
 | FR-5.3 | Every claim carries a citation: document code, Chapter/Article/Clause, effective date (R8.3). | P0 | The answer shows `[n]` and a source list with excerpts. | Built |
 | FR-5.4 | Verify each sentence before it is shown (R8.4). | P0 | <ul><li>The model cites `[n]` for the clauses it was given; the server maps `[n]` to chunk ids, and a number outside the list drops the sentence.</li><li>A kept sentence has ≥ 4 words and ≥ 60% of its content words in the cited clause.</li><li>**Every number in the sentence appears in the clause body** (article headings and clause numbers excluded).</li><li>A correct sentence without a citation is attached to the clause it matches.</li><li>On failure the model is asked once more; if that also fails, a verbatim quote of the retrieved clauses is returned (`mode=extractive_fallback`).</li></ul> | Built (property test P2; tests with models that invent ids, cite off-topic, state wrong numbers, write empty sentences). Rules added after the live-model run exposed off-topic citations and a wrong number that the earlier id-only check let through. |
-| FR-5.5 | When no passage clears the threshold, answer "not found" and suggest contacting the lecturer (R8.5). | P0 | A passage needs BM25 ≥ 2.0 **and** ≥ 40% of the question's keywords, or embedding cosine ≥ `EMBEDDING_MIN_SIMILARITY`. If the model answers `KHONG_TIM_THAY`, the answer is "not found". | Built. Live run: "Giá vàng hôm nay bao nhiêu?" and "Thủ đô của Pháp là gì?" → not found in 0.1 s. |
+| FR-5.5 | When no passage clears the threshold, answer "not found" and suggest contacting the lecturer (R8.5). | P0 | A passage needs BM25 ≥ 2.0 **and** ≥ 40% of the question's keywords, or embedding cosine ≥ the threshold calibrated for the embedding model (0.38 for text-embedding-3-small, 0.50 for bge-m3; `EMBEDDING_MIN_SIMILARITY` overrides it). If the model answers `KHONG_TIM_THAY`, the answer is "not found". | Built. Live run: "Giá vàng hôm nay bao nhiêu?" and "Thủ đô của Pháp là gì?" → not found in 0.1 s. |
 | FR-5.6 | A request for a decision ("em có được gia hạn không") gets the rule explained, no promise, and a pointer to the extension request (R8.6). | P0 | Returns `suggest_extension=true`. The assistant has no write tool. | Built |
 | FR-5.7 | Refuse and log questions about other students and prompt injection (R8.7). | P0 | A student code other than the asker's, phrases such as "hồ sơ của sinh viên khác", and Vietnamese or English injection are refused with a `violation_type` and audited as `refused`. | Built (pattern-based; see §12.2) |
 | FR-5.8 | Store the conversation with its citations and answer mode (R8.8). | P1 | Another user reading the conversation gets 404. | Built |
@@ -291,11 +292,11 @@ Storage: 18 tables created by `Base.metadata.create_all` at startup. There are n
 | ID | Category | Requirement | Status |
 |---|---|---|---|
 | NFR-1 | Latency | Assistant p95 ≤ 10 s, with streaming (spec NFR-1). | Built. <ul><li>**OpenAI (gpt-4o + text-embedding-3-small):** p95 2.0 s, median 1.2 s over 10 questions, all model-written.</li><li>**No-LLM mode:** p95 20 ms, first event ≤ 106 ms (`test_nfr1_latency_no_llm_mode`).</li><li>**Live, Qwen2.5 1.5B on the laptop CPU, default 8 s budget:** p95 8.4 s over 10 questions, first event ≤ 40 ms. The model never finished within budget on this CPU, so every answered question was a verified verbatim quote (`extractive_timeout`).</li><li>**Same model, budget off:** every answer was model-written and correct, but p95 was 16.1 s.</li></ul>Model-written answers within 10 s need faster hardware or a hosted API; that was not measured. |
-| NFR-2 | Deployment | One `docker compose up`; runs without an API key (spec NFR-2). | Built. The template's original Dockerfile was broken (packages installed to `/root/.local`, unreadable by the non-root user) and has been fixed. |
-| NFR-3 | Language and device | Vietnamese interface, usable on a phone (spec NFR-3). | Built: 11 screens rendered in headless Chrome at 390 × 844 have no horizontal overflow and no console errors (`tests/ui/mobile-check.mjs`). Not tried on a physical device. |
+| NFR-2 | Deployment | One `docker compose up`; runs without an API key (spec NFR-2). | Built. The Dockerfile builds the React frontend in a Node stage, then the Python image. The template's original Dockerfile was broken (packages installed to `/root/.local`, unreadable by the non-root user) and has been fixed. |
+| NFR-3 | Language and device | Vietnamese interface, usable on a phone (spec NFR-3). | Built: on the React frontend, 11 screens rendered in headless Chrome at 390 × 844 over HTTPS have no horizontal overflow and no console errors (`tests/ui/mobile-check.mjs`, re-run 2026-11-14 after the CSP fix in §13). Not tried on a physical device. |
 | NFR-4 | Prompts | Prompts live in `prompts/*.md` (spec NFR-4). | Built (`policy_assistant.md`, `intake_extract.md`, `reviewer_summary.md`). |
 | NFR-5 | Testing | Automated tests for the state machine, access, citation checks and monitor rules (spec NFR-5). | Built (§11). |
-| NFR-6 | Security | HTTPS on deployment; private files behind expiring URLs (R15.1). | Built. <ul><li>Caddy terminates TLS, redirects HTTP with 308, and sends HSTS, a CSP of `default-src 'self'`, `X-Frame-Options: DENY` and `nosniff`.</li><li>`SITE_ADDRESS=localhost` uses Caddy's internal CA, so browsers warn until it is trusted; a real domain gets a Let's Encrypt certificate.</li><li>The backend port is bound to `127.0.0.1` only.</li></ul> |
+| NFR-6 | Security | HTTPS on deployment; private files behind expiring URLs (R15.1). | Built. <ul><li>Caddy terminates TLS, redirects HTTP with 308, and sends HSTS, a CSP of `default-src 'self'` (scripts only from the site, no inline scripts; styles and fonts also from Google Fonts for the Lexend typeface), `X-Frame-Options: DENY` and `nosniff`.</li><li>`SITE_ADDRESS=localhost` uses Caddy's internal CA, so browsers warn until it is trusted; a real domain gets a Let's Encrypt certificate.</li><li>The backend port is bound to `127.0.0.1` only.</li></ul> |
 | NFR-7 | Security | Mask PII before calling an LLM (R15.2). | Built: known values of the asker, then regex for email, phone, student code, ID and tax numbers (property test P6). |
 | NFR-8 | Security | Audit every state change and every denied access (R15.3). | Built |
 | NFR-9 | Security | No PII in application logs (R15.4). | Built (`test_r15_4_application_logs_contain_no_pii`) |
@@ -310,7 +311,7 @@ Storage: 18 tables created by `Base.metadata.create_all` at startup. There are n
 - **Backend:** Python 3.12, FastAPI, LangGraph, SQLAlchemy 2, psycopg 3, httpx, pypdf, python-docx, python-multipart, openpyxl. Dev: pytest, pytest-asyncio, hypothesis, ruff.
 - **Proxy:** `caddy:2.8.4-alpine` with `deploy/Caddyfile`.
 - **Database:** PostgreSQL 16 (compose) or SQLite (`DATABASE_URL=sqlite:///./data/app.db`, also the test database, with foreign keys switched on).
-- **Frontend:** `web/index.html`, `app.js`, `styles.css`; no build step, no third-party code.
+- **Frontend:** React 18.3, react-router-dom 6.28 (HashRouter), Vite 5.4, in `frontend/`; built in the Docker image (`npm ci && npm run build`). Font Lexend from Google Fonts. `web/` keeps the first plain-JS version as a fallback.
 - **Models:** any OpenAI-compatible endpoint through the template's `src/services/llm.py` (`MODEL_CLASSIFY`, `MODEL_GENERATE`, `OPENAI_BASE_URL`, `LLM_MAX_TOKENS`) and `EMBEDDING_MODEL`. `deploy/docker-compose.llm.yml` runs Ollama with Qwen2.5 1.5B and bge-m3, and sets the embedding threshold measured for bge-m3. With no key, or the sample key `sk-your…`, `llm_available()` returns `False`.
 - **SSO test IdP:** `deploy/docker-compose.sso.yml` runs Keycloak 25.0.6 in dev mode with the `vin15` realm imported from `deploy/keycloak/vin15-realm.json`. It is for testing only.
 - **Key settings** (`.env.example`):
@@ -358,8 +359,8 @@ Storage: 18 tables created by `Base.metadata.create_all` at startup. There are n
 | Live model E2E (`scripts/llm_e2e.py`) | Covers: <ul><li>embedding reindex</li><li>10 assistant questions over SSE, each checked for outcome, cited article and the expected figure in the answer</li><li>refusal and not-found cases</li><li>intake extraction</li><li>outline summary</li><li>NFR-1 p95</li></ul> | `docker compose -f docker-compose.yml -f deploy/docker-compose.llm.yml up -d`, pull the models, then `docker run --rm --network mini-agent-studio_default -v "$PWD":/app vin15-dev python scripts/llm_e2e.py` | Run 2026-11-14 with Qwen2.5 1.5B + bge-m3: all checks pass with the default 8 s budget. With the budget off, everything passes except NFR-1 (p95 16.1 s). Not in CI. |
 | OpenAI E2E (`scripts/llm_e2e.py`, default stack with `OPENAI_API_KEY` in `.env`) | Same script against api.openai.com (gpt-4o, gpt-4o-mini, text-embedding-3-small). | `docker compose up -d`, then the same `docker run … llm_e2e.py` | Two runs on 2026-11-14: <ul><li>**Expired key:** the degraded-mode checks passed (answers from quotes, p95 0.4 s, refusals, not-found).</li><li>**Valid key:** all checks passed. 7/7 answers were model-written and correct, p95 2.0 s; intake `source=llm`; outline summary; refusals and not-found.</li></ul> |
 | Real SSO E2E (`scripts/sso_e2e.py`) | The full flow through Keycloak's login form, as in §5.1 FR-1.2. | `docker compose -f docker-compose.yml -f deploy/docker-compose.sso.yml up -d`, then `python scripts/sso_e2e.py` in the network | Run 2026-11-14: 8/8. Not in CI. |
-| UI smoke (jsdom, `tests/ui/ui-smoke.mjs`, 28 checks) | Runs the real `web/app.js` against the running server. Covers: <ul><li>login</li><li>student create and rule check</li><li>timeline, log attachments, extension evidence</li><li>assistant over SSE with sources</li><li>regulations</li><li>lecturer queue with AI box, the aggregated list and its risk filter, detail with audit, warnings</li><li>admin screen, template editing, cohort-wide list</li><li>no JavaScript errors</li></ul> | Freshly reset stack, then `cd tests/ui && npm i && npm run smoke` | Built (28/28 on 2026-11-14). Not in CI; it changes the data. |
-| Mobile (headless Chrome, `tests/ui/mobile-check.mjs`) | 11 screens across all roles at 390 × 844 over HTTPS: no horizontal overflow, no console errors, screenshots in `tests/ui/screens/`. | `npm run mobile` (set `BROWSER_PATH` if Chrome is elsewhere; Edge works) | Built (11/11 on 2026-11-14). Not in CI. |
+| UI smoke (jsdom, `tests/ui/ui-smoke.mjs`, 28 checks) | Functional checks written for the first, plain-JS frontend (`web/app.js`): login, registration and rule check, timeline, logs, extension form, assistant over SSE, regulations, lecturer queue, list and filter, detail and audit, warnings, admin screen and templates. | Only against the legacy `web/` build | Passed 28/28 on the plain-JS frontend (2026-11-14). **Does not run against the React frontend**, which has no `app.js`; the React app has no automated functional UI test yet (§11.4). |
+| Mobile (headless Chrome, `tests/ui/mobile-check.mjs`) | 11 screens across all roles at 390 × 844 over HTTPS: no horizontal overflow, no console errors, screenshots in `tests/ui/screens/`. | `npm run mobile` (set `BROWSER_PATH` if Chrome is elsewhere; Edge works) | Built. React frontend: 11/11 on 2026-11-14 after the CSP fix (before it, every screen logged the blocked font and theme script). Not in CI. |
 | Postgres and HTTPS, by hand | The full stack through the API, a direct `UPDATE audit_event`, HTTP→HTTPS redirect, security headers, SSE through Caddy. | §11.3 | Done once on 2026-11-14; not automated. |
 | CI | `.github/workflows/ci.yml` from the template runs `ruff check src/ tests/` and `pytest tests/` on Python 3.11. | Push to GitHub | Not run: the repository has not been pushed. |
 
@@ -412,7 +413,8 @@ Prerequisites: `docker compose down -v && docker compose up -d --build`, then op
 - The live-model and real-SSO runs are scripts run by hand, not part of CI.
 - The live-model question set has 10 questions; there is no larger answer-quality set (R16 is deferred).
 - pytest runs on SQLite only; Postgres and HTTPS were checked by hand.
-- The UI checks are not in CI and change the data they run on.
+- The React frontend has no automated functional test; the jsdom smoke covers only the legacy plain-JS app. Porting it (or adding Playwright) is pending. The mobile check verifies layout and console errors only.
+- The UI checks are not in CI.
 - No load test.
 - The refusal rules are regex; there is no large adversarial set to measure MET-8.
 
@@ -440,7 +442,7 @@ Prerequisites: `docker compose down -v && docker compose up -d --build`, then op
   - A correct paraphrase in very different words is dropped; the user then gets the verbatim quote.
   - The check confirms that a sentence comes from the clause, not that it answers the question. With weak models (0.5B), a grounded sentence from the wrong clause can still pass.
 - **Embedding thresholds are per model.**
-  - The 0.5 cut-off was measured for bge-m3 on three sample documents; another model needs a new measurement.
+  - Thresholds were measured on the three sample documents with 8 questions: 0.38 for text-embedding-3-small, 0.50 for bge-m3. Another model needs a new measurement.
   - nomic-embed-text cannot separate Vietnamese topics.
   - Without an embedder, BM25 misses synonyms ("deadline", "mấy tiếng").
 - **Verbatim answers** quote the one or two best clauses; they do not apply the rule to the student's situation.
@@ -470,12 +472,14 @@ Prerequisites: `docker compose down -v && docker compose up -d --build`, then op
     - **A provider error made the assistant refuse to answer.** Fixed by FR-5.13.
     - **Reindex reported success with 0 vectors.** Fixed by FR-6.5.
     - **LangSmith tracing was on with a placeholder key.** Fixed by NFR-9a.
+  - After the React frontend was merged (PR #3), the CSP blocked its Google Fonts stylesheet and its inline theme script on every page over HTTPS, so the redesign showed a fallback font and dark-mode users saw a light flash. Fixed locally: the CSP allows `fonts.googleapis.com` and `fonts.gstatic.com`, and the theme script moved to `frontend/public/theme-init.js`. Not yet committed.
+  - The lecturer queue appended "· chỉ để tham khảo" to an AI label that already ended with it. Fixed locally in `LecturerQueue.jsx`. Not yet committed.
 - **Deviations from the design**, with reasons in WORKLOG ADR-001 to ADR-011:
-  - plain JS instead of Next.js
+  - React with Vite instead of Next.js (the first build was plain JS; the React redesign came in PR #3)
   - BM25 plus JSON embeddings instead of pgvector
   - an asyncio loop instead of APScheduler
   - `create_all` instead of Alembic
-  - jsdom and headless Chrome instead of Playwright
+  - jsdom (legacy frontend only) and headless Chrome instead of Playwright
   - in-memory rate limits
 
 ## 14. Open questions
@@ -499,6 +503,7 @@ Prerequisites: `docker compose down -v && docker compose up -d --build`, then op
 |---|---|---|---|
 | 0.1 | 2026-11-13 | Product team (drafted with Claude Code) | First PRD, in Vietnamese, written from the code after the build against spec version 2 (two main roles plus an optional Administrator; R6, R7, R16 deferred). |
 | 0.2 | 2026-11-14 | Product team (drafted with Claude Code) | Rewritten in English to follow the sample format. Added streaming, HTTPS, SSO (mocked IdP), embeddings, log attachments, extension evidence, the template editor, mobile and PII-in-log checks. Recorded the template foreign-key bug. |
-| 0.5 | 2026-11-14 | Product team (drafted with Claude Code) | Ran against OpenAI with a valid key: all live checks pass, p95 2.0 s. Calibrated text-embedding-3-small (threshold 0.38); thresholds are now per model. Added LAN access through Caddy (`DEFAULT_SNI`, needed because browsers send no SNI to an IP address). 145 tests. |
-| 0.4 | 2026-11-14 | Product team (drafted with Claude Code) | Called api.openai.com: the key in `.env` was expired (401). Fixed the empty-`OPENAI_BASE_URL` embedding bug, the hard refusal on provider errors (FR-5.13), silent reindex failures (FR-6.5) and unintended LangSmith tracing (NFR-9a). 144 tests. OpenAI quality and latency are pending a valid key. |
 | 0.3 | 2026-11-14 | Product team (drafted with Claude Code) | Built R7 (aggregated list, filters, export). Put the template's demo endpoints behind sign-in. Added lock-out and rate limits. Ran SSO against Keycloak 25 and the model path against Ollama (Qwen2.5, bge-m3). Added grounding, number checks, `[n]` citations, the verbatim fallback and the 8 s time budget after the live run exposed off-topic and wrong-number answers. Recorded live latency (NFR-1) and the nomic-embed-text finding. |
+| 0.4 | 2026-11-14 | Product team (drafted with Claude Code) | Called api.openai.com: the key in `.env` was expired (401). Fixed the empty-`OPENAI_BASE_URL` embedding bug, the hard refusal on provider errors (FR-5.13), silent reindex failures (FR-6.5) and unintended LangSmith tracing (NFR-9a). 144 tests. OpenAI quality and latency are pending a valid key. |
+| 0.5 | 2026-11-14 | Product team (drafted with Claude Code) | Ran against OpenAI with a valid key: all live checks pass, p95 2.0 s. Calibrated text-embedding-3-small (threshold 0.38); thresholds are now per model. Added LAN access through Caddy (`DEFAULT_SNI`, needed because browsers send no SNI to an IP address). 145 tests. |
+| 0.6 | 2026-11-14 | Product team (drafted with Claude Code) | Checked against `main` after the React frontend merge (PR #3): updated scope, basis, user journey, dependencies and deviations for React/Vite. Found and fixed the CSP blocking the React fonts and theme script, and a duplicated AI label. Re-ran the mobile check on React (11/11). Marked the jsdom smoke as legacy-only. Threshold text now per model. Added companion documents (brief, wireframes). Change log put in version order. |
