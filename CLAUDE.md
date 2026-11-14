@@ -6,6 +6,7 @@
 
 Đọc nhanh khi mất context:
 - **Đây là**: AI20K Agent Template — starter code cho học viên VinUni build AI Agent.
+- **Đề tài**: Hệ thống hỗ trợ thực tập bằng AI — xem `docs/problem-statement.md`.
 - **Stack**: Python 3.12, FastAPI, LangGraph 1.x, LangChain 1.x, Pydantic v2.
 - **Mock-first**: agent chạy được KHÔNG cần OPENAI_API_KEY (xem `src/services/llm.py`).
 - **Chạy server**: `uvicorn src.main:app --reload` → http://localhost:8000/docs
@@ -24,6 +25,11 @@
   prompt dài trong Python string.
 - **Safety guardrail**: DANGER_KEYWORDS ở `nodes/safety_node.py`. Domain-specific →
   team phải cập nhật theo app của mình.
+- **Ràng buộc đề tài** (chi tiết ở `docs/problem-statement.md`):
+  - Phê duyệt đề cương thực tập, xử lý ngoại lệ, công nhận quy đổi tín chỉ BẮT BUỘC có
+    giảng viên/quản trị viên phê duyệt (HITL) — agent không được tự quyết.
+  - Câu trả lời về chính sách phải trích dẫn đúng văn bản quy định hiện hành.
+  - Bảo mật thông tin sinh viên và doanh nghiệp.
 - **Logging hooks**: `.claude/.cursor/.codex/.gemini/.github` auto-log prompt vào
   `.ai-log/`. KHÔNG disable, KHÔNG bypass `--no-verify`.
 
