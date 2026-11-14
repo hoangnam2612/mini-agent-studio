@@ -1,3 +1,11 @@
+# ---- Stage 0: Build frontend (React/Vite) → frontend/dist ----
+FROM node:22-slim AS frontend
+WORKDIR /frontend
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY frontend/ .
+RUN npm run build
+
 # ---- Stage 1: Build ----
 FROM python:3.12-slim AS builder
 
@@ -21,6 +29,7 @@ RUN useradd -m appuser
 
 # Copy application code
 COPY . .
+COPY --from=frontend /frontend/dist /app/frontend/dist
 
 # Create data directory with correct ownership
 RUN mkdir -p /app/data && chown -R appuser:appuser /app

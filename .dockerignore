@@ -20,3 +20,7 @@ eval/
 .dockerignore
 Dockerfile
 docker-compose.yml
+
+# FE React: node_modules/dist build lại trong image (stage frontend)
+frontend/node_modules
+frontend/dist

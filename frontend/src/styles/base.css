@@ -1,0 +1,64 @@
+/* Design tokens + reset. Đổi màu/cỡ chữ toàn app tại đây. */
+:root {
+  --bg: #f6f4ee;
+  --surface: #ffffff;
+  --surface-2: #f2efe6;
+  --text: #1b2433;
+  --muted: #5b6577;
+  --line: #e4dfd3;
+  --edge: #d9d3c3;          /* viền khung */
+  --line-strong: #9a9482;   /* viền ô nhập (≥3:1) */
+  --primary: #1f4b99;
+  --primary-hover: #183b7a;
+  --primary-soft: #e7eefb;
+  --on-primary: #ffffff;
+  --ok: #14603a;      --ok-soft: #e2f3ea;
+  --warn: #8a4b00;    --warn-soft: #fff1db;
+  --bad: #b42318;     --bad-soft: #fde8e6;
+  --info: #1f4b99;    --info-soft: #e7eefb;
+  --ai: #0b5f58;      --ai-soft: #e3f3f0;  --ai-line: #6fb9b0;  --ai-field: #f2faf8;
+  --radius: 8px;
+  --radius-lg: 10px;
+  --font: "Lexend", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --sidebar-w: 264px;
+}
+:root { color-scheme: light; }
+/* Tối: tự động theo hệ điều hành (trừ khi người dùng ép Sáng) hoặc khi người dùng chọn Tối. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12161d; --surface: #1a2029; --surface-2: #222a35; --text: #e8ecf2; --muted: #a0abbb;
+    --line: #2c3544; --edge: #38445a; --line-strong: #5d6a80;
+    --primary: #7fa6ee; --primary-hover: #9bb9f2; --primary-soft: #1f2c47; --on-primary: #0d1524;
+    --ok: #67d19a; --ok-soft: #173326; --warn: #f2b45a; --warn-soft: #3a2b12; --bad: #ff8a80; --bad-soft: #3d1f1d;
+    --info: #7fa6ee; --info-soft: #1f2c47; --ai: #6fd0c4; --ai-soft: #14312e; --ai-line: #2f7d74; --ai-field: #112826;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+    --bg: #12161d; --surface: #1a2029; --surface-2: #222a35; --text: #e8ecf2; --muted: #a0abbb;
+    --line: #2c3544; --edge: #38445a; --line-strong: #5d6a80;
+    --primary: #7fa6ee; --primary-hover: #9bb9f2; --primary-soft: #1f2c47; --on-primary: #0d1524;
+    --ok: #67d19a; --ok-soft: #173326; --warn: #f2b45a; --warn-soft: #3a2b12; --bad: #ff8a80; --bad-soft: #3d1f1d;
+    --info: #7fa6ee; --info-soft: #1f2c47; --ai: #6fd0c4; --ai-soft: #14312e; --ai-line: #2f7d74; --ai-field: #112826;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body, #root { min-height: 100%; }
+body { margin: 0; font: 15px/1.6 var(--font); background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
+h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 6px; font-weight: 700; letter-spacing: -0.02em; }
+h2 { font-size: 1.25rem; line-height: 1.3; margin: 0 0 16px; font-weight: 600; letter-spacing: -0.01em; }
+h3 { font-size: 1.05rem; margin: 0 0 8px; font-weight: 600; }
+p { margin: 0 0 12px; }
+a { color: var(--primary); }
+a:hover { color: var(--primary-hover); }
+:focus-visible { outline: 3px solid color-mix(in srgb, var(--primary) 55%, transparent); outline-offset: 2px; }
+.muted { color: var(--muted); }
+.small { font-size: .875rem; }
+.pre { white-space: pre-wrap; }
+.row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.spread { justify-content: space-between; }
+.stack { display: flex; flex-direction: column; gap: 16px; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 24px; }
+@media (max-width: 720px) { .grid2 { grid-template-columns: minmax(0, 1fr); } h1 { font-size: 1.6rem; } }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
