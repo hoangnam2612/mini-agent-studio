@@ -16,7 +16,9 @@ from src.db import init_db, init_engine, session_factory
 from src.workflow.state_machine import TransitionError
 
 logger = logging.getLogger("vin15")
-WEB_DIR = Path(__file__).resolve().parent.parent / "web"
+_ROOT = Path(__file__).resolve().parent.parent
+# Ưu tiên bản React đã build (frontend/dist); chưa build thì dùng FE cũ ở web/.
+WEB_DIR = _ROOT / "frontend" / "dist" if (_ROOT / "frontend" / "dist" / "index.html").exists() else _ROOT / "web"
 
 
 def guard_tracing() -> bool:
