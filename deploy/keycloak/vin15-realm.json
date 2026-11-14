@@ -1,0 +1,47 @@
+{
+  "realm": "vin15",
+  "enabled": true,
+  "sslRequired": "none",
+  "clients": [
+    {
+      "clientId": "vin15",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "vin15-demo-secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["http://backend:8000/api/v1/auth/oidc/callback", "https://localhost/api/v1/auth/oidc/callback"],
+      "webOrigins": ["+"]
+    }
+  ],
+  "users": [
+    {
+      "username": "chi.le",
+      "enabled": true,
+      "email": "sv03@student.demo.edu.vn",
+      "emailVerified": true,
+      "firstName": "Chi",
+      "lastName": "Lê",
+      "credentials": [{"type": "password", "value": "Sso-demo-123", "temporary": false}]
+    },
+    {
+      "username": "tam.le",
+      "enabled": true,
+      "email": "gv01@demo.edu.vn",
+      "emailVerified": true,
+      "firstName": "Tâm",
+      "lastName": "Lê Minh",
+      "credentials": [{"type": "password", "value": "Sso-demo-123", "temporary": false}]
+    },
+    {
+      "username": "outsider",
+      "enabled": true,
+      "email": "outsider@example.com",
+      "emailVerified": true,
+      "firstName": "Out",
+      "lastName": "Sider",
+      "credentials": [{"type": "password", "value": "Sso-demo-123", "temporary": false}]
+    }
+  ]
+}

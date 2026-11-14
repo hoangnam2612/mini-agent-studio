@@ -1,0 +1,22 @@
+# SSO thật với Keycloak (realm vin15 nạp sẵn: chi.le ↔ sv03, tam.le ↔ gv01, outsider không có tài khoản).
+#   docker compose -f docker-compose.yml -f deploy/docker-compose.sso.yml up -d
+#   docker run --rm --network mini-agent-studio_default -v "$PWD":/app vin15-dev python scripts/sso_e2e.py
+# Chỉ để kiểm thử: Keycloak chạy start-dev (HTTP, H2), mật khẩu admin mặc định.
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:25.0.6
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    volumes:
+      - ./deploy/keycloak:/opt/keycloak/data/import:ro
+
+  backend:
+    environment:
+      OIDC_ISSUER: http://keycloak:8080/realms/vin15
+      OIDC_CLIENT_ID: vin15
+      OIDC_CLIENT_SECRET: vin15-demo-secret
+      OIDC_REDIRECT_URI: http://backend:8000/api/v1/auth/oidc/callback
+    depends_on:
+      - keycloak

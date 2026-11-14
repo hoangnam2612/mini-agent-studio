@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cổng thực tập VIN-15</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar" id="topbar" hidden>
+    <a class="brand" href="#/">Cổng thực tập</a>
+    <nav id="nav"></nav>
+    <div class="who">
+      <button class="bell" id="bell" title="Thông báo" aria-label="Thông báo">🔔<span id="bell-count" hidden></span></button>
+      <span id="who"></span>
+      <button class="link" id="logout">Đăng xuất</button>
+    </div>
+  </header>
+  <div id="notif-panel" class="notif-panel" hidden></div>
+  <main id="app" aria-live="polite"></main>
+  <div id="toast" class="toast" role="status" hidden></div>
+  <script src="app.js"></script>
+</body>
+</html>
