@@ -1,0 +1,25 @@
+/* Biến theme, reset, typography, tiện ích chung. */
+:root {
+  --bg: #f6f7f9; --surface: #ffffff; --surface-2: #f0f2f5; --text: #18202b; --muted: #5b6573;
+  --border: #dde2e8; --accent: #1f5fbf; --accent-text: #ffffff; --ok: #1e7a46; --warn: #a15c00;
+  --bad: #b3261e; --info: #2f6f9f; --ai: #6a3fb5; --ai-bg: #f3eefc;
+  --radius: 10px; --shadow: 0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12161c; --surface: #1a2029; --surface-2: #222a35; --text: #e6eaf0; --muted: #9aa5b4;
+    --border: #2e3846; --accent: #6ea8ff; --accent-text: #0d1420; --ok: #5cc98a; --warn: #f0b04f;
+    --bad: #ff7b72; --info: #79b8e8; --ai: #b99cf0; --ai-bg: #261f36;
+    --shadow: none;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); }
+a { color: var(--accent); }
+h1 { font-size: 1.4rem; margin: 0 0 .75rem; }
+h2 { font-size: 1.1rem; margin: 0 0 .6rem; }
+h3 { font-size: 1rem; margin: 0 0 .4rem; }
+main { max-width: 1080px; margin: 0 auto; padding: 16px; }
+.muted { color: var(--muted); }
+.small { font-size: .85rem; }
+.pre { white-space: pre-wrap; }

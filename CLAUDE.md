@@ -27,31 +27,20 @@
 - **Logging hooks**: `.claude/.cursor/.codex/.gemini/.github` auto-log prompt vào
   `.ai-log/`. KHÔNG disable, KHÔNG bypass `--no-verify`.
 
+## Quy tắc viết tài liệu (docs)
+
+- **Làm xong một chức năng/refactor thì viết tài liệu** vào `docs/`, một file `.md`. Có thể viết
+  ngay khi vừa xong hoặc ngay trước khi commit — miễn là có trước khi kết thúc công việc.
+- **Tên file**: `YYYYMMDD-<làm-cái-gì>.md` (kebab-case, ngày là ngày làm), ví dụ
+  `docs/20261114-refactor-fe.md`.
+- **Nội dung**: vấn đề/mục tiêu, đã làm gì (cấu trúc, file chính), cách kiểm tra, và những gì
+  chưa kiểm tra hoặc còn lưu ý.
+- **Người dùng yêu cầu chỉnh sửa lại tính năng đã có tài liệu → SỬA file docs đó**, không tạo file
+  `.md` mới cho cùng tính năng. Cập nhật nội dung cho khớp code; chỉ tạo file mới khi là tính năng khác.
+
 ## Commands hay dùng
 
-```bash
-make test          # pytest
-make lint          # ruff check
-make run           # uvicorn
-python eval/run_eval.py
-```
-
 Slash commands (Claude Code): `/feature`, `/eval` (xem `.claude/commands/`).
-
-## Kiến trúc
-
-```
-src/agents/
-  graph.py            # LangGraph orchestration (retry loop, safety gate)
-  state.py            # AgentState TypedDict
-  prompts.py          # loader + SHARED_RULES
-  personas.py         # persona registry (frozen dataclass)
-  nodes/              # reason, act, assess, human_review, finalize (ReAct loop)
-  #                     # + safety, retrieve, synthesize, validate (pattern pipeline)
-  tools/knowledge.py  # @tool: search_knowledge (RAG+citation), calculate (safe eval)
-prompts/              # system_prompt.md, safeguards.md, citation_rules.md
-eval/                 # golden_dataset + runner + LLM-judge + cost + thresholds
-```
 
 ## Quyết định kỹ thuật (ADR ngắn)
 
