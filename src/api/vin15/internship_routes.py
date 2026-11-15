@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+import asyncio
+import json
+from collections.abc import Callable
 from datetime import date
 from typing import Literal
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi.concurrency import run_in_threadpool
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
@@ -17,25 +22,29 @@ from src.config import get_settings
 from src.core import audit, ratelimit
 from src.core.audit import Actor
 from src.core.auth import actor_of, current_user, require_role
-from src.db import get_db
+from src.db import get_db, session_factory
 from src.models.orm import AuditEvent, Company, ExtensionRequest, Internship, Milestone, Outline, User
 from src.services import intake, lifecycle, monitor
-from src.services.documents import UnreadableDocument, extract_text
+from src.services.documents import IMAGE_EXTS, UnreadableDocument, read_document
+from src.services.llm import llm_available
 from src.services.notifications import notify
 from src.services.pii import Redactor
+from src.services.provenance import document_payload
 from src.services.reviewer import summarize_outline
-from src.services.storage import FileRejected, check_file
+from src.services.storage import ALLOWED, FileRejected, check_file
 from src.workflow.rules import validate_internship
 from src.workflow.state_machine import transition
 
 router = APIRouter(tags=["internships"])
 
 _EDITABLE = ("draft", "revision_requested")
-_INTAKE_TYPES = {
-    ".pdf": ("application/pdf", (b"%PDF",)),
-    ".docx": ("application/vnd.openxmlformats-officedocument.wordprocessingml.document", (b"PK\x03\x04",)),
-    ".txt": ("text/plain", (b"",)),
-}
+_TEXT_TYPES = {".txt": ("text/plain", (b"",))}
+
+
+def _intake_types() -> dict:
+    """PDF/DOCX/TXT luôn nhận; ảnh chỉ nhận khi bật OCR (dùng lại định nghĩa magic bytes của storage)."""
+    exts = (".pdf", ".docx") + (IMAGE_EXTS if get_settings().ocr_enabled else ())
+    return {**{e: ALLOWED[e] for e in exts}, **_TEXT_TYPES}
 
 
 class InternshipIn(BaseModel):
@@ -184,21 +193,91 @@ def decide_internship(internship_id: int, body: DecisionIn, user: User = Depends
     return internship_out(i, detail=True)
 
 
-@router.post("/intake/extract")
-async def intake_extract(file: UploadFile = File(...), user: User = Depends(require_role("student")),
-                         db: Session = Depends(get_db)) -> dict:
+class IntakeError(Exception):
+    """Không đọc/trích được giấy tiếp nhận (→ 422, hoặc sự kiện `error` khi stream)."""
+
+
+async def _run_intake(db: Session, user: User, name: str, content: bytes, emit: Callable[[dict], None] | None = None) -> dict:
+    """Đọc file (OCR nếu là scan/ảnh) → trích trường → gắn vị trí nguồn. `emit` nhận các sự kiện tiến độ."""
+    loop = asyncio.get_running_loop()
+
+    def say(event: dict) -> None:
+        if emit:
+            emit(event)
+
+    def on_progress(event: dict) -> None:  # gọi từ thread đang đọc file
+        if emit and event.get("stage") == "ocr":
+            label = f"Nhận dạng chữ trên ảnh — trang {event['page']}/{event['pages']}"
+            loop.call_soon_threadsafe(emit, {"type": "stage", **event, "label": label})
+
+    say({"type": "stage", "stage": "read", "label": "Đọc nội dung file"})
+    try:
+        # OCR chạy CPU và chặn → để ngoài event loop (SSE trợ lý, monitor dùng chung process)
+        doc = await run_in_threadpool(read_document, name, content, ocr=True, progress=on_progress)
+    except UnreadableDocument as exc:
+        raise IntakeError(str(exc)) from exc
+    if not doc.text.strip():
+        raise IntakeError("Không đọc được chữ trong file — hãy tải bản rõ hơn hoặc nhập tay")
+    say({"type": "stage", "stage": "extract",
+         "label": "Trích xuất các trường bằng mô hình AI" if llm_available() else "Trích xuất các trường theo luật"})
+    redactor = Redactor({"HO_TEN": user.full_name, "MSSV": user.student_code, "EMAIL": user.email})
+    result = await intake.extract_suggestions(db, doc.text, redactor, from_ocr=doc.used_ocr, doc=doc)
+    result["document"] = document_payload(doc)
+    return result
+
+
+async def _read_upload(file: UploadFile, user: User) -> tuple[str, bytes]:
     ratelimit.enforce_usage(user.id, "intake", get_settings().intake_per_minute)
     content = await file.read()
     name = file.filename or "upload"
     try:
-        check_file(name, content, _INTAKE_TYPES)
-        text = extract_text(name, content)
-    except (FileRejected, UnreadableDocument) as exc:
+        check_file(name, content, _intake_types())
+    except FileRejected as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    if not text.strip():
-        raise HTTPException(status_code=422, detail="Không đọc được chữ trong file (file scan cần nhập tay)")
-    redactor = Redactor({"HO_TEN": user.full_name, "MSSV": user.student_code, "EMAIL": user.email})
-    return await intake.extract_suggestions(db, text, redactor)
+    return name, content
+
+
+@router.post("/intake/extract")
+async def intake_extract(file: UploadFile = File(...), user: User = Depends(require_role("student")),
+                         db: Session = Depends(get_db)) -> dict:
+    name, content = await _read_upload(file, user)
+    try:
+        return await _run_intake(db, user, name, content)
+    except IntakeError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.post("/intake/extract/stream")
+async def intake_extract_stream(file: UploadFile = File(...), user: User = Depends(require_role("student"))) -> StreamingResponse:
+    """SSE: `stage` (read / ocr theo trang / extract) → `done` kèm kết quả, hoặc `error`. Cùng kết quả với /intake/extract."""
+    name, content = await _read_upload(file, user)  # lỗi định dạng/giới hạn → HTTP 4xx như thường, chưa mở stream
+    queue: asyncio.Queue[dict | None] = asyncio.Queue()
+
+    async def worker() -> None:
+        db = session_factory()()
+        try:
+            queue.put_nowait({"type": "stage", "stage": "upload", "label": "Đã nhận file"})
+            result = await _run_intake(db, user, name, content, queue.put_nowait)
+            queue.put_nowait({"type": "done", "result": result})
+        except IntakeError as exc:
+            queue.put_nowait({"type": "error", "detail": str(exc)})
+        except Exception as exc:  # lỗi bất ngờ → báo tường minh cho client, không im lặng
+            queue.put_nowait({"type": "error", "detail": f"Lỗi khi xử lý file: {exc}"})
+        finally:
+            db.close()
+            queue.put_nowait(None)
+
+    task = asyncio.create_task(worker())
+
+    async def events():
+        try:
+            while (event := await queue.get()) is not None:
+                yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+        finally:
+            task.cancel()  # client ngắt kết nối giữa chừng → thôi chờ kết quả
+
+    return StreamingResponse(events(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
 # ---------------------------------------------------------------- đề cương (R3)

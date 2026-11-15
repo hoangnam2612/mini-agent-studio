@@ -197,6 +197,40 @@ async def test_intake_endpoint(api):
     assert r.status_code == 422
 
 
+async def test_intake_accepts_scanned_image_via_ocr(api, monkeypatch):
+    from src.services import documents
+
+    text = "Mã số thuế: 0109998887\nVị trí: Thực tập sinh dữ liệu"
+    monkeypatch.setattr(documents, "ocr_image", lambda content, progress=None: documents.ExtractedText(text, used_ocr=True))
+    png = b"\x89PNG\r\n\x1a\n" + b"0" * 32
+    r = await api.call("POST", "/intake/extract", "sv01", files={"file": ("scan.png", png, "image/png")})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["ocr"] is True and body["fields"]["company_tax_code"]["value"] == "0109998887"
+    # đuôi .png nhưng nội dung không phải PNG → từ chối ở bước kiểm tra magic bytes
+    r = await api.call("POST", "/intake/extract", "sv01", files={"file": ("fake.png", b"not a png", "image/png")})
+    assert r.status_code == 422
+
+
+async def test_intake_image_rejected_when_ocr_disabled(api, monkeypatch):
+    from src.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "ocr_enabled", False)
+    r = await api.call("POST", "/intake/extract", "sv01", files={"file": ("scan.png", b"\x89PNG" + b"0" * 16, "image/png")})
+    assert r.status_code == 422
+
+
+async def test_intake_ocr_failure_is_422_not_500(api, monkeypatch):
+    from src.services import documents
+
+    def boom(content, progress=None):
+        raise documents.UnreadableDocument("Máy chủ chưa cài Tesseract OCR")
+
+    monkeypatch.setattr(documents, "ocr_image", boom)
+    r = await api.call("POST", "/intake/extract", "sv01", files={"file": ("scan.jpg", b"\xff\xd8\xff" + b"0" * 16, "image/jpeg")})
+    assert r.status_code == 422 and "Tesseract" in r.json()["detail"]
+
+
 async def test_lecturer_flag_actions(api, db):
     flag = db.scalar(select(RiskFlag).where(RiskFlag.flag_type == "low_hours"))
     lecturer = db.get(User, db.get(Internship, flag.internship_id).lecturer_id).username

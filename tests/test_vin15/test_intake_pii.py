@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+import shutil
 
 import pytest
 
@@ -60,6 +61,84 @@ def test_docx_parsing_roundtrip():
     doc.save(buf)
     text = extract_text("giay.docx", buf.getvalue())
     assert "Mã số thuế: 0101234567" in text
+
+
+def _blank_pdf() -> bytes:
+    from pypdf import PdfWriter
+
+    w = PdfWriter()
+    w.add_blank_page(width=200, height=200)  # PDF hợp lệ nhưng không có text layer (như bản scan)
+    buf = io.BytesIO()
+    w.write(buf)
+    return buf.getvalue()
+
+
+def test_scanned_pdf_uses_ocr_only_when_requested(monkeypatch):
+    from src.services import documents
+
+    calls = []
+    monkeypatch.setattr(documents, "ocr_pdf",
+                        lambda content, progress=None: calls.append("pdf") or documents.ExtractedText(LETTER, used_ocr=True))
+    pdf = _blank_pdf()
+
+    doc = documents.read_document("scan.pdf", pdf, ocr=True)
+    assert doc.used_ocr and "Mã số thuế: 0101234567" in doc.text and calls == ["pdf"]
+
+    # Mặc định (vd. upload kho quy định) không âm thầm OCR
+    calls.clear()
+    doc = documents.read_document("scan.pdf", pdf)
+    assert not doc.used_ocr and not doc.text.strip() and calls == []
+
+
+def test_image_needs_ocr_flag_and_setting(monkeypatch):
+    from src.config import get_settings
+    from src.services import documents
+
+    monkeypatch.setattr(documents, "ocr_image", lambda content, progress=None: documents.ExtractedText(LETTER, used_ocr=True))
+    png = b"\x89PNG fake"
+    assert documents.read_document("a.png", png, ocr=True).used_ocr
+    with pytest.raises(documents.UnreadableDocument):
+        documents.read_document("a.png", png)  # ocr=False → ảnh không hỗ trợ
+    monkeypatch.setattr(get_settings(), "ocr_enabled", False)
+    with pytest.raises(documents.UnreadableDocument):
+        documents.read_document("a.png", png, ocr=True)
+    assert documents.read_document("scan.pdf", _blank_pdf(), ocr=True).used_ocr is False
+
+
+def test_ocr_unavailable_is_unreadable_not_crash(monkeypatch):
+    from src.services import documents
+
+    def boom(content, progress=None):
+        raise documents.UnreadableDocument("Máy chủ chưa cài Tesseract OCR")
+
+    monkeypatch.setattr(documents, "ocr_image", boom)
+    with pytest.raises(documents.UnreadableDocument, match="Tesseract"):
+        documents.read_document("a.jpg", b"\xff\xd8\xff fake", ocr=True)
+
+
+def test_ocr_lowers_confidence(db):
+    plain = intake.build_suggestions(db, intake.regex_extract(LETTER), source="rules")
+    ocr = intake.build_suggestions(db, intake.regex_extract(LETTER), source="rules", from_ocr=True)
+    assert ocr["ocr"] is True and plain["ocr"] is False
+    assert ocr["fields"]["mentor_email"]["confidence"] < plain["fields"]["mentor_email"]["confidence"]
+    assert ocr["fields"]["mentor_email"]["value"] == "bao.tq@saomai.vn"
+
+
+@pytest.mark.skipif(shutil.which("tesseract") is None, reason="chưa cài Tesseract")
+def test_real_tesseract_reads_text_from_image():
+    from PIL import Image, ImageDraw, ImageFont
+
+    from src.services import documents
+
+    img = Image.new("RGB", (900, 160), "white")
+    try:
+        font = ImageFont.truetype("DejaVuSans.ttf", 40)
+    except OSError:
+        pytest.skip("không có font để dựng ảnh mẫu")
+    ImageDraw.Draw(img).text((20, 50), "Ma so thue: 0101234567", fill="black", font=font)
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    assert "0101234567" in documents.read_document("mau.png", buf.getvalue(), ocr=True).text.replace(" ", "")
 
 
 def test_storage_rejects_spoofed_and_oversized_files(monkeypatch):
