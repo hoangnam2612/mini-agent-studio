@@ -24,6 +24,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 
 COPY --from=builder /install /usr/local
 
+# OCR cục bộ cho giấy tiếp nhận scan/ảnh (/intake/extract) — cài khi còn là root
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-vie \
+    && rm -rf /var/lib/apt/lists/*
+
 # Security: run as non-root user
 RUN useradd -m appuser
 

@@ -22,6 +22,10 @@ python-multipart>=0.0.20
 pypdf>=5.1.0
 python-docx>=1.1.2
 openpyxl>=3.1.5  # xuất danh sách tổng hợp XLSX (R7.3)
+# OCR cục bộ cho giấy tiếp nhận scan/ảnh — cần binary tesseract-ocr + tesseract-ocr-vie trên máy chủ
+pytesseract>=0.3.10
+pillow>=10.4.0
+pypdfium2>=4.30.0
 
 # Vector Store (uncomment as needed)
 # chromadb>=0.5.0

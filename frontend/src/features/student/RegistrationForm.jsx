@@ -1,12 +1,16 @@
 import { useRef, useState } from "react";
 import { useToast } from "../../context/ToastContext";
-import { api, formData } from "../../lib/api";
+import { api, streamIntake } from "../../lib/api";
 import { FIELDS } from "../../lib/config";
 import { AiBox, AiTag, Button, Card, CardHead, Citation, Field } from "../../components/ui";
+import IntakeProgress from "./IntakeProgress";
+import IntakeSource from "./IntakeSource";
 
 // Form đăng ký thực tập (kèm điền tự động từ file giấy tiếp nhận bằng AI).
 
 const MODES = [["full_time", "Toàn thời gian"], ["part_time", "Bán thời gian"]];
+const SOURCE_LABEL = { rules: "bộ trích xuất theo luật", "rules+llm": "bộ trích xuất theo luật + mô hình AI bổ sung" };
+const BY_LABEL = { rules: "Theo luật", llm: "AI" };
 
 function initialValues(i) {
   return Object.fromEntries(FIELDS.map(([n]) => [n, i[n] || (n === "mode" ? "full_time" : "")]));
@@ -19,7 +23,10 @@ export default function RegistrationForm({ internship: i, editable, status, relo
   const [version, setVersion] = useState(i.version);
   const [checks, setChecks] = useState(null); // null | { fails: [], ok: bool }
   const [intake, setIntake] = useState(null); // null | "loading" | {error} | result
+  const [progress, setProgress] = useState(null); // tiến trình xử lý file khi đang chạy
+  const [activeField, setActiveField] = useState(null); // trường đang xem nguồn
   const fileRef = useRef();
+  const viewerRef = useRef();
 
   const change = (name, value) => {
     setValues((v) => ({ ...v, [name]: value }));
@@ -56,13 +63,35 @@ export default function RegistrationForm({ internship: i, editable, status, relo
 
   const onIntakeFile = async (ev) => {
     const file = ev.target.files[0];
+    ev.target.value = ""; // cho phép chọn lại đúng file đó lần sau
     if (!file) return;
     setIntake("loading");
+    setActiveField(null);
+    setProgress({ stage: "upload", label: "Đang tải file lên…", fileName: file.name, startedAt: Date.now(), ocr: false });
+    let finished = false;
     try {
-      setIntake(await api("POST", "/intake/extract", formData({ file }), true));
+      await streamIntake(file, (e) => {
+        if (e.type === "stage") {
+          setProgress((p) => ({ ...p, stage: e.stage, label: e.label, page: e.page, pages: e.pages, ocr: p.ocr || e.stage === "ocr" }));
+        } else if (e.type === "done") {
+          finished = true;
+          setIntake(e.result);
+        } else if (e.type === "error") {
+          finished = true;
+          setIntake({ error: e.detail });
+        }
+      });
+      if (!finished) setIntake({ error: "Kết nối bị ngắt trước khi xử lý xong — hãy thử lại." });
     } catch (e) {
       setIntake({ error: e.message });
+    } finally {
+      setProgress(null);
     }
+  };
+
+  const selectField = (name) => {
+    setActiveField(name);
+    viewerRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }); // khung xem có thể nằm dưới màn hình
   };
 
   const applyIntake = () => {
@@ -89,31 +118,52 @@ export default function RegistrationForm({ internship: i, editable, status, relo
           {status}
           {editable && (
             <>
-              <input ref={fileRef} type="file" accept=".pdf,.docx,.txt" onChange={onIntakeFile} hidden />
+              <input ref={fileRef} type="file" accept=".pdf,.docx,.txt,.png,.jpg,.jpeg" onChange={onIntakeFile} hidden />
               <Button size="sm" onClick={() => fileRef.current.click()}>✦ Điền từ file giấy tiếp nhận</Button>
             </>
           )}
         </div>
       </CardHead>
 
-      {intake === "loading" && <p className="muted">Đang đọc file…</p>}
+      {progress && <IntakeProgress progress={progress} />}
       {intake?.error && <p className="errors">{intake.error}</p>}
+      {intake?.llm?.error && (
+        <p className="hint" role="alert">Không gọi được mô hình AI ({intake.llm.error}) nên các trường còn thiếu chưa được bổ sung — kết quả chỉ từ bộ trích xuất theo luật. Hãy nhập tay phần còn thiếu.</p>
+      )}
+      {intake?.ocr && <p className="hint">Văn bản được nhận dạng từ ảnh/bản scan nên có thể sai chữ số — hãy kiểm tra kỹ mã số thuế, ngày, email và số điện thoại.</p>}
       {intake?.fields && (
-        <AiBox label={`${intake.label} · nguồn: ${intake.source === "llm" ? "mô hình AI" : "bộ trích xuất theo luật"}${intake.matched_company ? ` · khớp DN đã có: ${intake.matched_company.name}` : ""}`}>
+        <AiBox label={`${intake.label} · nguồn: ${SOURCE_LABEL[intake.source] || "bộ trích xuất theo luật"}${intake.matched_company ? ` · khớp DN đã có: ${intake.matched_company.name}` : ""}`}>
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Trường</th><th>Giá trị gợi ý</th><th>Độ tin cậy</th></tr></thead>
+              <thead><tr><th>Trường</th><th>Giá trị gợi ý</th><th>Độ tin cậy</th>{intake.document && <th>Vị trí trong file</th>}</tr></thead>
               <tbody>
                 {Object.entries(intake.fields).map(([k, v]) => (
-                  <tr key={k}>
+                  <tr key={k} className={activeField === k ? "is-active" : ""}>
                     <td>{(FIELDS.find((f) => f[0] === k) || [k, k])[1]}</td>
-                    <td>{v.needs_manual ? <span className="muted">cần nhập tay</span> : v.value}</td>
+                    <td>
+                      {v.needs_manual ? <span className="muted">cần nhập tay</span> : v.value}
+                      {v.by && !v.needs_manual && <span className={`badge ${v.by === "llm" ? "ai" : ""}`} style={{ marginLeft: 8 }}>{BY_LABEL[v.by]}</span>}
+                      {v.needs_manual && v.raw && <div className="small muted">đọc được: “{v.raw}” (không hợp lệ)</div>}
+                      {v.needs_manual && v.unverified && <div className="small muted">AI đề xuất “{v.unverified}” nhưng không thấy trong file nên không dùng</div>}
+                    </td>
                     <td>{Math.round(v.confidence * 100)}%</td>
+                    {intake.document && (
+                      <td>
+                        {v.source
+                          ? <button type="button" className="link-btn" onClick={() => selectField(k)} aria-pressed={activeField === k}>Xem trong file</button>
+                          : <span className="small muted">{v.raw ? "không xác định được vị trí" : "không tìm thấy trong file"}</span>}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          {intake.document && (
+            <div ref={viewerRef} style={{ marginTop: 16 }}>
+              <IntakeSource document={intake.document} fields={intake.fields} active={activeField} onSelect={selectField} />
+            </div>
+          )}
           <Button variant="primary" size="sm" onClick={applyIntake} style={{ marginTop: 12 }}>Điền vào form</Button>
         </AiBox>
       )}

@@ -45,13 +45,8 @@ export function formData(obj) {
   return fd;
 }
 
-/* Đọc SSE từ POST /assistant/chat/stream (EventSource không hỗ trợ POST + header). */
-export async function streamChat(message, conversationId, onEvent) {
-  const res = await fetch(API + "/assistant/chat/stream", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
-    body: JSON.stringify({ message, conversation_id: conversationId }),
-  });
+/* Đọc SSE từ POST (EventSource không hỗ trợ POST + header). Lỗi HTTP trước khi mở stream → throw. */
+async function readSse(res, onEvent) {
   if (!res.ok) {
     const data = await res.json().catch(() => null);
     throw new Error(errorText(data?.detail) || `Lỗi ${res.status}`);
@@ -71,6 +66,27 @@ export async function streamChat(message, conversationId, onEvent) {
       if (line) onEvent(JSON.parse(line.slice(6)));
     }
   }
+}
+
+/** POST /assistant/chat/stream: sự kiện stage → delta → done. */
+export async function streamChat(message, conversationId, onEvent) {
+  const res = await fetch(API + "/assistant/chat/stream", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+    body: JSON.stringify({ message, conversation_id: conversationId }),
+  });
+  await readSse(res, onEvent);
+}
+
+/** POST /intake/extract/stream (multipart): sự kiện stage (read / ocr theo trang / extract) → done | error. */
+export async function streamIntake(file, onEvent) {
+  const res = await fetch(API + "/intake/extract/stream", {
+    method: "POST",
+    headers: { Authorization: "Bearer " + token }, // không đặt Content-Type: trình duyệt tự thêm boundary
+    body: formData({ file }),
+  });
+  if (res.status === 401 && token) { onUnauthorized(); throw new Error("Phiên đăng nhập hết hạn"); }
+  await readSse(res, onEvent);
 }
 
 /** Tải file xuất (cần Bearer token nên không dùng link thường). */

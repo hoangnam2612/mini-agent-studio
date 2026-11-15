@@ -66,6 +66,11 @@ class Settings(BaseSettings):
     file_url_ttl_seconds: int = Field(default=300, ge=30)
     upload_dir: str = "./data/uploads"
     max_upload_mb: int = Field(default=10, ge=1, le=100)
+    # OCR cục bộ (Tesseract) cho giấy tiếp nhận dạng scan/ảnh — chỉ dùng ở /intake/extract
+    ocr_enabled: bool = True
+    ocr_lang: str = "vie+eng"
+    ocr_max_pages: int = Field(default=3, ge=1, le=10)
+    ocr_timeout_seconds: int = Field(default=30, ge=1, le=300)
     cohort_config: str = "config/cohort.yaml"
     policy_seed_dir: str = "seed/policies"
     # Vai trò tùy chọn: tắt thì cấu hình lấy từ YAML/seed, kho quy định do GV điều phối quản lý
