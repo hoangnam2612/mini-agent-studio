@@ -115,7 +115,7 @@
 
 ## Trạng thái triển khai (cập nhật 2026-11-14, đọc từ code)
 
-Chi tiết từng yêu cầu: `PRD.md` §5. Tóm tắt theo task:
+Chi tiết từng yêu cầu: `docs/PRD.md` §5. Tóm tắt theo task:
 
 | Task | Trạng thái | Ghi chú / lệch so với design |
 |---|---|---|

@@ -1,7 +1,7 @@
 # AI20K Agent Template
 
 > **Dự án đang xây trên template này: VIN-15 — Hệ thống hỗ trợ thực tập bằng AI.**
-> PRD (trạng thái từng yêu cầu theo code): [`PRD.md`](PRD.md) · Spec Kiro: [`.kiro/specs/internship-ai-assistant/`](.kiro/specs/internship-ai-assistant/)
+> PRD (trạng thái từng yêu cầu theo code): [`PRD.md`](docs/PRD.md) · Spec Kiro: [`.kiro/specs/internship-ai-assistant/`](.kiro/specs/internship-ai-assistant/)
 >
 > ```bash
 > docker compose up --build        # Postgres + API + Caddy HTTPS → https://localhost

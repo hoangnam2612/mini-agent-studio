@@ -3,7 +3,7 @@
 ## 1. Mục tiêu
 
 Có bộ wireframe để nộp cùng PRD: vẽ lại 14 màn của frontend React hiện tại (main `c3e71ab`), mỗi màn có bản
-desktop và mobile, chú thích trỏ về mã yêu cầu trong `PRD.md`. Xuất được PDF hoặc từng màn.
+desktop và mobile, chú thích trỏ về mã yêu cầu trong `docs/PRD.md`. Xuất được PDF hoặc từng màn.
 
 ## 2. Đã làm
 

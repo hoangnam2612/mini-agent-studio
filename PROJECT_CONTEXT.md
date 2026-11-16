@@ -6,7 +6,7 @@
 ## 0. Quick Rehydrate (≤ 60s)
 
 - **Project**: VIN-15 — Hệ thống hỗ trợ thực tập bằng AI: cổng Sinh viên – Giảng viên (+ Quản trị viên tùy chọn), trợ lý chính sách có trích dẫn, giám sát mốc theo luật, phê duyệt HITL.
-- **Spec / PRD**: `.kiro/specs/internship-ai-assistant/` (requirements, design, tasks, use-cases) · `PRD.md` (trạng thái từng yêu cầu theo code).
+- **Spec / PRD**: `.kiro/specs/internship-ai-assistant/` (requirements, design, tasks, use-cases) · `docs/PRD.md` (trạng thái từng yêu cầu theo code).
 - **Stack**: Python 3.12 / FastAPI / LangGraph / SQLAlchemy (SQLite dev-test, Postgres compose) / SPA JS thuần trong `web/`.
 - **Dev**: `docker compose up --build` → https://localhost (Caddy TLS) · API trực tiếp http://127.0.0.1:8000/docs. Không Docker: `uvicorn src.main:app --reload`.
 - **Test**: `pytest` (124 test) · UI: `cd tests/ui && npm i && npm run smoke && npm run mobile` (cần server đang chạy, DB seed mới).
