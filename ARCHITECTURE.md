@@ -6,7 +6,7 @@ Một ứng dụng FastAPI phục vụ cả REST API (`/api/v1`) lẫn giao di�
 Caddy (HTTPS). Nghiệp vụ thực tập (hồ sơ, mốc, nhật ký, gia hạn) là state machine viết bằng code;
 AI chỉ ở ba chỗ: trợ lý chính sách (LangGraph, có kiểm chứng trích dẫn), trích xuất giấy tiếp
 nhận, tóm tắt gợi ý cho giảng viên. Tác tử giám sát chạy theo luật, không gọi LLM.
-Chi tiết yêu cầu và trạng thái: `PRD.md`; spec: `.kiro/specs/internship-ai-assistant/`.
+Chi tiết yêu cầu và trạng thái: `docs/PRD.md`; spec: `.kiro/specs/internship-ai-assistant/`.
 
 ## Architecture Diagram
 
@@ -20,7 +20,9 @@ graph TB
         API[api/vin15/*<br/>RBAC + scoping] --> WF[workflow/state_machine<br/>transition&#40;&#41; + audit]
         API --> Rules[workflow/rules<br/>cohort.yaml]
         API --> Agent[agents/policy_graph<br/>guard→retrieve→synthesize→verify→finalize]
-        API --> Intake[services/intake]
+        API --> Intake[services/intake<br/>regex trước, LLM lấp chỗ thiếu]
+        Intake --> Docs[services/documents<br/>PDF/DOCX/TXT + OCR Tesseract]
+        Intake --> Prov[services/provenance<br/>vị trí nguồn trong file]
         API --> Reviewer[services/reviewer]
         Monitor[services/monitor<br/>asyncio, hằng ngày + sự kiện] --> Rules
         Monitor --> WF
@@ -76,7 +78,7 @@ Volume: `pgdata` (DB), `./data` (file), `caddy_data` (chứng chỉ). Backend ch
 - HTTPS qua Caddy (HSTS, CSP `default-src 'self'`, `X-Frame-Options: DENY`, `nosniff`).
 - File tải qua URL ký HMAC, hết hạn 300 s; kiểm định dạng theo magic bytes.
 - PII được che trước mọi lời gọi LLM; test quét log ứng dụng không có PII.
-- Chưa có: giới hạn tần suất, khóa đăng nhập sai, thu hồi JWT (xem `PRD.md` §13).
+- Chưa có: giới hạn tần suất, khóa đăng nhập sai, thu hồi JWT (xem `docs/PRD.md` §13).
 
 ## Design Decisions
 
