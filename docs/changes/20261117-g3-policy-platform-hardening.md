@@ -14,3 +14,4 @@
 
 - `pytest tests/ -q` (sau khi cài Pillow theo requirements): 188 passed, 1 skipped.
 - `ruff check src tests` đạt.
+- `python eval/run_eval.py --strict` chạy offline mặc định: 10/10 (100%).
