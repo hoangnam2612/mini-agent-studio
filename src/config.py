@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     app_env: Literal["development", "production", "test"] = "development"
     app_port: int = Field(default=8000, ge=1, le=65535)
     app_host: str = "0.0.0.0"
+    app_timezone: str = "Asia/Ho_Chi_Minh"
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     cors_origins: str = "http://localhost:3000"
 
@@ -61,6 +62,7 @@ class Settings(BaseSettings):
     # NFR-1: tổng thời gian dành cho model mỗi câu hỏi (mọi lần sinh). Hết → trả trích dẫn nguyên văn
     # đã kiểm chứng (mode=extractive_timeout). 0 = không giới hạn.
     llm_answer_budget_seconds: float = Field(default=8.0, ge=0.0)
+    reviewer_summary_budget_seconds: float = Field(default=4.0, ge=0.1, le=30.0)
     jwt_secret: str = "dev-only-change-me"
     jwt_ttl_minutes: int = Field(default=480, ge=5)
     file_url_ttl_seconds: int = Field(default=300, ge=30)

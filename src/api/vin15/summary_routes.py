@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import csv
 import io
-from datetime import date
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
@@ -19,6 +18,7 @@ from sqlalchemy.orm import Session, selectinload
 from src.api.vin15.deps import scoped_internships
 from src.core import audit
 from src.core.auth import actor_of, require_role
+from src.core.time import local_today
 from src.db import get_db
 from src.models.orm import Internship, RiskFlag, User
 
@@ -124,7 +124,7 @@ def summary(
     }
     start = (page - 1) * page_size
     return {"total": len(rows), "page": page, "page_size": page_size, "items": rows[start:start + page_size],
-            "facets": facets, "today": date.today().isoformat()}
+            "facets": facets, "today": local_today().isoformat()}
 
 
 @router.get("/internships-summary/export")
@@ -137,7 +137,7 @@ def export(
     rows = build_rows(db, user, f)
     audit.record(db, actor_of(user), "internship", None, "exported", after={"format": format, "rows": len(rows)})
     db.commit()
-    filename = f"danh-sach-thuc-tap-{date.today().isoformat()}.{format}"
+    filename = f"danh-sach-thuc-tap-{local_today().isoformat()}.{format}"
     if format == "csv":
         buf = io.StringIO()
         writer = csv.writer(buf)

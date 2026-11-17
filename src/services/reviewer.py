@@ -9,11 +9,14 @@ from __future__ import annotations
 
 import logging
 import re
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FutureTimeout
 from datetime import date
 
 from sqlalchemy.orm import Session
 
 from src.agents.prompts import load_prompt
+from src.config import get_settings
 from src.models.orm import Cohort, ExtensionRequest
 from src.services.llm import get_llm, llm_available
 from src.services.pii import Redactor
@@ -42,7 +45,18 @@ def _first_sentences(text: str, n: int = 2) -> str:
 def _llm_summary(text: str, purpose: str) -> str:
     # Hướng dẫn ở system, văn bản ở human — model nhỏ hay chép lại hướng dẫn nếu gộp chung
     system = load_prompt("reviewer_summary.md").replace("{{purpose}}", purpose)
-    out = str(get_llm("classify").invoke([("system", system), ("human", text[:6000])]).content).strip()
+    def call():
+        return get_llm("classify").invoke([("system", system), ("human", text[:6000])])
+
+    pool = ThreadPoolExecutor(max_workers=1)
+    future = pool.submit(call)
+    try:
+        out = str(future.result(timeout=get_settings().reviewer_summary_budget_seconds).content).strip()
+    except FutureTimeout as exc:
+        future.cancel()
+        raise TimeoutError("Tóm tắt đề cương vượt ngân sách thời gian") from exc
+    finally:
+        pool.shutdown(wait=False, cancel_futures=True)
     # Bỏ dòng model lặp lại hướng dẫn ("Tối đa 3 câu…") nếu có
     lines = [ln for ln in out.splitlines() if not re.search(r"(?i)tối đa \d+ câu|không đưa ra khuyến nghị", ln)]
     return "\n".join(lines).strip() or out

@@ -205,7 +205,13 @@ async def llm_extract(text: str, fields: list[str]) -> ExtractedFields:
 def normalize_date(value: str | None) -> str | None:
     if not value:
         return None
-    folded = _fold(value)
+    # Tesseract often emits O/0 and l/1 in numeric dates; repair only the
+    # compact date candidate before parsing, while preserving the raw quote.
+    candidate = re.sub(r"(?<![A-Za-z])[Oo](?=[\d\s/.-])", "0", value)
+    candidate = re.sub(r"(?<=[\d\s/.-])[Oo](?=[\d\s/.-])", "0", candidate)
+    candidate = re.sub(r"(?<![A-Za-z])[lI](?=[\d\s/.-])", "1", candidate)
+    candidate = re.sub(r"(?<=[\d\s/.-])[lI](?=[\d\s/.-])", "1", candidate)
+    folded = _fold(candidate)
     m = re.search(_DATE, folded) or re.search(_DATE_WORDS, folded)
     if m:
         try:
@@ -221,7 +227,8 @@ def normalize_date(value: str | None) -> str | None:
 def normalize_phone(value: str | None) -> str | None:
     if not value:
         return None
-    digits = re.sub(r"\D", "", value)
+    candidate = value.translate(str.maketrans("OoIl", "0011"))
+    digits = re.sub(r"\D", "", candidate)
     if digits.startswith("84"):
         digits = "0" + digits[2:]
     return digits if re.fullmatch(r"0\d{9,10}", digits) else None

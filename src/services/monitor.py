@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 from src.config import get_settings
 from src.core import audit
 from src.core.audit import Actor
+from src.core.time import local_now, local_today
 from src.db import session_factory
 from src.models.orm import Internship, RiskFlag
 from src.services.lifecycle import close_flag, daily_status_job
@@ -85,7 +86,7 @@ def run_for(db: Session, internship: Internship, today: date) -> list[RiskFlag]:
 
 
 def run_all(db: Session, today: date | None = None) -> dict:
-    today = today or date.today()
+    today = today or local_today()
     status = daily_status_job(db, today)
     created = 0
     for internship in db.scalars(
@@ -99,11 +100,11 @@ def run_all(db: Session, today: date | None = None) -> dict:
 
 def run_for_event(db: Session, internship: Internship) -> None:
     """Gọi sau sự kiện (nộp nhật ký/minh chứng/đổi trạng thái) — R10.1."""
-    run_for(db, internship, date.today())
+    run_for(db, internship, local_today())
 
 
 async def scheduler_loop() -> None:
-    """Chạy run_all mỗi ngày lúc MONITOR_HOUR (giờ máy chủ) và một lần khi khởi động."""
+    """Chạy run_all mỗi ngày lúc MONITOR_HOUR theo múi giờ ứng dụng."""
     settings = get_settings()
     while True:
         try:
@@ -114,7 +115,7 @@ async def scheduler_loop() -> None:
                 db.close()
         except Exception as exc:  # job lỗi không được làm sập API
             logger.error("FAILED monitor run: %s", exc)
-        now = datetime.now()
+        now = local_now()
         next_run = now.replace(hour=settings.monitor_hour, minute=0, second=0, microsecond=0)
         if next_run <= now:
             next_run += timedelta(days=1)
