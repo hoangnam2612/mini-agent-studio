@@ -84,10 +84,40 @@ async def fetch_userinfo(code: str) -> dict:
             "grant_type": "authorization_code", "code": code, "redirect_uri": s.oidc_redirect_uri,
             "client_id": s.oidc_client_id, "client_secret": s.oidc_client_secret,
         })
-        if token.status_code != 200 or "access_token" not in token.json():
+        token_data = token.json()
+        if token.status_code != 200 or "access_token" not in token_data:
             raise OIDCError("IdP từ chối mã đăng nhập")
+        if token_data.get("id_token"):
+            await verify_id_token(token_data["id_token"], meta)
         info = await client.get(meta["userinfo_endpoint"],
-                                headers={"Authorization": f"Bearer {token.json()['access_token']}"})
+                                headers={"Authorization": f"Bearer {token_data['access_token']}"})
     if info.status_code != 200:
         raise OIDCError("Không lấy được thông tin người dùng từ IdP")
     return info.json()
+
+
+async def verify_id_token(id_token: str, metadata: dict) -> dict:
+    """Verify an OIDC JWT against the provider JWKS before trusting it."""
+    try:
+        import jwt
+        from cryptography.hazmat.primitives.asymmetric.rsa import RSAAlgorithm
+    except ImportError as exc:
+        raise OIDCError("Thiếu PyJWT/cryptography để xác thực id_token") from exc
+    jwks_uri = metadata.get("jwks_uri")
+    if not jwks_uri:
+        raise OIDCError("IdP thiếu jwks_uri")
+    async with http_client() as client:
+        response = await client.get(jwks_uri)
+    if response.status_code != 200:
+        raise OIDCError("Không lấy được JWKS của IdP")
+    header = jwt.get_unverified_header(id_token)
+    key = next((item for item in response.json().get("keys", []) if item.get("kid") == header.get("kid")), None)
+    if not key:
+        raise OIDCError("Không tìm thấy khóa ký id_token")
+    try:
+        public_key = RSAAlgorithm.from_jwk(json.dumps(key))
+        issuer = get_settings().oidc_issuer.rstrip("/")
+        return jwt.decode(id_token, public_key, algorithms=["RS256"],
+                          audience=get_settings().oidc_client_id, issuer=issuer)
+    except Exception as exc:
+        raise OIDCError("Chữ ký id_token không hợp lệ") from exc

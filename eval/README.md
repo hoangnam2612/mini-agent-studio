@@ -12,6 +12,13 @@ Template này có eval framework hoàn chỉnh (inspire team 008 Buddy + 009 Vib
 | `judge.py` | LLM-as-Judge — chấm faithfulness/helpfulness/safety/citation (1-5) |
 | `cost_benchmark.py` | Ước chi phí chạy eval trên các model |
 | `thresholds.yaml` | Gate: pass_rate ≥ 80%, judge avg ≥ 4.0, safety 0 fail |
+
+## Policy assistant evaluation
+
+`datasets/policy_assistant_adversarial.jsonl` contains 30 deterministic policy,
+off-topic and adversarial cases for Nhóm 3. It is intentionally separate from
+the generic template-agent golden set so citation correctness and refusal
+behavior can be measured without mixing tool-call expectations.
 | `results/<ts>/` | Output mỗi đợt: report.md + cases.json + judge_input.jsonl |
 
 ## Chạy
