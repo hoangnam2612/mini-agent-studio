@@ -158,9 +158,11 @@ async def run_case(graph, case: dict) -> dict:
     return result
 
 
-async def main(dataset: Path, threshold: float, strict: bool) -> int:
+async def main(dataset: Path, threshold: float, strict: bool, online: bool = False) -> int:
     settings = get_settings()
-    offline = not settings.openai_api_key
+    # Offline is the safe/reproducible default. Real-model evaluation is opt-in
+    # so a stale placeholder key cannot turn a local eval into 401s.
+    offline = not online or not settings.openai_api_key
     mode = "OFFLINE STUB (không có OPENAI_API_KEY — số liệu chỉ chứng minh pipeline chạy)" if offline else f"LLM thật (generate={settings.model_generate}, judge={settings.model_judge})"
 
     cases = [json.loads(line) for line in dataset.read_text(encoding="utf-8").splitlines() if line.strip()]
@@ -279,6 +281,9 @@ if __name__ == "__main__":
     parser.add_argument("--dataset", type=Path, default=DATASET_DEFAULT)
     parser.add_argument("--threshold", type=float, default=0.8)
     parser.add_argument("--strict", action="store_true", help="Exit 1 nếu dưới threshold (dùng CI)")
+    parser.add_argument("--online", action="store_true", help="Cho phép gọi model thật (cần OPENAI_API_KEY hợp lệ)")
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
-    raise SystemExit(asyncio.run(main(args.dataset, args.threshold, args.strict)))
+    if hasattr(__import__("sys").stdout, "reconfigure"):
+        __import__("sys").stdout.reconfigure(encoding="utf-8")
+    raise SystemExit(asyncio.run(main(args.dataset, args.threshold, args.strict, args.online)))

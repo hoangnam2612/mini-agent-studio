@@ -10,6 +10,7 @@ Bổ sung cho `guardrails.check_input` (pattern tiếng Anh của template):
 from __future__ import annotations
 
 import re
+import unicodedata
 from dataclasses import dataclass
 
 from src.agents.guardrails import GuardrailViolation, guardrails
@@ -40,17 +41,23 @@ class GuardResult:
 
 
 def check_policy_query(query: str, own_student_code: str | None) -> GuardResult:
+    # Normalize user-controlled text before matching. This catches payloads
+    # split by newlines or zero-width characters while preserving Vietnamese
+    # accents for the domain-specific patterns below.
+    normalized_query = unicodedata.normalize("NFKC", query)
+    normalized_query = re.sub(r"[\u200b-\u200f\u2060\ufeff]", "", normalized_query)
+    normalized_query = re.sub(r"\s+", " ", normalized_query).strip()
     try:
-        guardrails.check_input(query)
+        guardrails.check_input(normalized_query)
     except GuardrailViolation as exc:
         return GuardResult("Yêu cầu chứa nội dung tìm cách vượt qua quy tắc của trợ lý.", exc.violation_type)
     for pattern in _INJECTION_VI:
-        if pattern.search(query):
+        if pattern.search(normalized_query):
             return GuardResult("Yêu cầu chứa nội dung tìm cách vượt qua quy tắc của trợ lý.", "prompt_injection_vi")
     own = (own_student_code or "").lower()
-    if any(code.lower() != own for code in _STUDENT_CODE.findall(query)):
+    if any(code.lower() != own for code in _STUDENT_CODE.findall(normalized_query)):
         return GuardResult("Trợ lý không cung cấp thông tin của sinh viên khác.", "other_student_data")
     for pattern in _OTHER_STUDENT:
-        if pattern.search(query):
+        if pattern.search(normalized_query):
             return GuardResult("Trợ lý không cung cấp thông tin của sinh viên khác.", "other_student_data")
-    return GuardResult(decision_request=any(p.search(query) for p in _DECISION))
+    return GuardResult(decision_request=any(p.search(normalized_query) for p in _DECISION))

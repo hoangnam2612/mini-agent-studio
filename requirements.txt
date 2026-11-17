@@ -36,6 +36,8 @@ pytest>=8.0.0
 pytest-asyncio>=0.24.0
 httpx>=0.28.0
 hypothesis>=6.120.0
+redis>=5.0.0
+PyJWT[crypto]>=2.9.0
 
 # Eval
 pyyaml>=6.0

@@ -136,14 +136,20 @@ async def extractive_synthesize(state: PolicyState, prompt: str) -> str:
 
 
 MIN_WORDS = 4  # câu quá ngắn ("Từ đoạn [1]") có trích dẫn nhưng không có nội dung → loại
-MIN_SUPPORT = 0.6  # tỉ lệ từ nội dung của câu phải có trong đoạn được trích (bám nguồn)
+MIN_SUPPORT = 0.5  # cho phép diễn đạt lại nhưng vẫn yêu cầu nửa số từ nội dung bám nguồn
 _SENTENCE = re.compile(r"(?<=[.!?])\s+|\n+")
 _ANY_MARKER = re.compile(r"\s*\[\[chunk:(-?\d+)\]\]")
 
 
 def _content_tokens(text: str) -> set[str]:
     # Từ có nghĩa (bỏ stopword) + mọi con số — số liệu sai là lỗi nặng nhất của trả lời quy định
-    return set(tokenize(text, keep_accents=False)) | set(re.findall(r"\d+", text))
+    tokens = set(tokenize(text, keep_accents=False))
+    aliases = {
+        "han": "thoi", "thoi": "han", "deadline": "han", "toi": "it",
+        "thieu": "it", "cham": "tre", "tre": "cham", "nop": "gui", "gui": "nop",
+    }
+    tokens |= {aliases[t] for t in tokens if t in aliases}
+    return tokens | set(re.findall(r"\d+", text))
 
 
 def support(sentence: str, source: str) -> float:

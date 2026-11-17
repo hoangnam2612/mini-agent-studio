@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -48,7 +48,8 @@ class Settings(BaseSettings):
     oidc_client_secret: str = ""
     oidc_redirect_uri: str = "https://localhost/api/v1/auth/oidc/callback"
     oidc_scopes: str = "openid email profile"
-    # Giới hạn tần suất (in-memory, một process)
+    # Giới hạn tần suất (Redis dùng chung nếu REDIS_URL được cấu hình)
+    redis_url: str = ""
     login_max_failures: int = Field(default=5, ge=1)
     login_lock_minutes: int = Field(default=15, ge=1)
     login_ip_per_minute: int = Field(default=30, ge=1)
@@ -95,6 +96,12 @@ class Settings(BaseSettings):
     def _blank_is_none(cls, value):
         # `EMBEDDING_MIN_SIMILARITY=` để trống trong .env → dùng ngưỡng theo model, không lỗi parse
         return None if isinstance(value, str) and not value.strip() else value
+
+    @model_validator(mode="after")
+    def _require_production_secret(self):
+        if self.app_env == "production" and self.jwt_secret == "dev-only-change-me":
+            raise ValueError("JWT_SECRET phải được đổi khi APP_ENV=production")
+        return self
 
 
 @lru_cache
